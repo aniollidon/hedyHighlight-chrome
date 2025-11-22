@@ -1,0 +1,26 @@
+.hedy-error {
+  text-decoration: underline wavy red;
+  cursor: help;
+}
+
+.hedy-warning {
+  text-decoration: underline wavy orange;
+  cursor: help;
+}
+
+.hedy-info {
+  text-decoration: underline wavy blue;
+  cursor: help;
+}
+
+.hedy-tooltip {
+  position: absolute;
+  background-color: #333;
+  color: white;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1000;
+  pointer-events: none;
+  display: none;
+}
