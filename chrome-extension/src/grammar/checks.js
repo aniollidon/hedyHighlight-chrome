@@ -1,7 +1,12 @@
 import { identation, separarParaules } from "../utils.js";
 import { EntityDefinitions } from "./entities.js";
 import { Memory } from "./memory.js";
-import { hedyCommands } from "./definitions/hedy-syntax.js";
+import {
+  hedyCommands,
+  specificHedyErrors,
+  hedyGeneralSyntax,
+  errorMapping,
+} from "./definitions/hedy-syntax.js";
 import {
   HHError,
   HHErrorVal,
@@ -11,7 +16,6 @@ import {
 } from "./errors.js";
 import { detectMorpho } from "./morphosyntax.js";
 import { validType, compareTypes, detectTypeConstant } from "./types.js";
-import specificHedyErrors from "./definitions/specific-errors.js";
 
 // No hi ha ni elif, ni and ni or (LEVS 5,6,7,8)
 const condicionalInlineRegex =
@@ -19,7 +23,7 @@ const condicionalInlineRegex =
 const condicionalElseInlineRegex = /(.* )(else) (.*)/;
 const bucleInlineRegex = /^(repeat +([\p{L}_\d]+) +times +)(.*)$/u;
 
-export class CheckHedy {
+class CheckHedy {
   constructor(level) {
     this.memory = new Memory();
     this.entities = new EntityDefinitions(level);
@@ -225,7 +229,7 @@ export class CheckHedy {
     errors = this._searchNotUsed(sintagma);
     if (errors.length > 0) errorsFound.push(...errors);
 
-    console.log("línia " + (lineNumber + 1) + ":", sintagma);
+    //console.log('línia ' + (lineNumber + 1) + ':', sintagma)
 
     return errorsFound;
   }
@@ -237,7 +241,7 @@ export class CheckHedy {
     );
 
     for (let k = 0; k < words.length; k++) {
-      for (const command of this.commandsSyntax.getCommands()) {
+      for (const command of this.commandsSyntax.getAll()) {
         let contextValid = true;
 
         // Després de print, ask o echo tot és string i no comandes (exeptuant at random n3)
@@ -339,7 +343,7 @@ export class CheckHedy {
       if (text === "") continue;
 
       if (words[i].type !== "command") {
-        const entity = this.entities.getEntity(text);
+        const entity = this.entities.get(text);
         const constant = detectTypeConstant(text, true, this._booleans);
 
         if (entity !== undefined) {
@@ -386,7 +390,7 @@ export class CheckHedy {
       }
 
       if (word.command) {
-        const commandDef = this.commandsSyntax.getCommandByName(word.command);
+        const commandDef = this.commandsSyntax.getByName(word.command);
         let endArgsCommand = sintagma.size();
         let startArgsCommand = k;
         if (!commandDef) continue;
@@ -617,9 +621,8 @@ export class CheckHedy {
         }
       }
 
-      const generalSyntax = this.commandsSyntax.getGeneralSyntax();
-      for (let i = 0; i < generalSyntax.length; i++) {
-        const rule = generalSyntax[i];
+      for (let i = 0; i < hedyGeneralSyntax.length; i++) {
+        const rule = hedyGeneralSyntax[i];
         if (rule.levelStart && rule.levelStart > this.level) continue;
         if (rule.levelEnd && rule.levelEnd < this.level) continue;
         if (
@@ -662,9 +665,8 @@ export class CheckHedy {
         errorsFound.push(...this._searchSpecificErrors(word.subphrase));
       }
 
-      const specificErrors = this.commandsSyntax.getSpecificErrors();
-      for (let j = 0; j < specificErrors.length; j++) {
-        const error = specificErrors[j];
+      for (let j = 0; j < specificHedyErrors.length; j++) {
+        const error = specificHedyErrors[j];
 
         if (error.levelStart && error.levelStart > this.level) continue;
         if (error.levelEnd && error.levelEnd < this.level) continue;
@@ -816,37 +818,14 @@ export class CheckHedy {
   }
 
   _processErrors(errors, line, lineNumber) {
-    const errorMapping = this.commandsSyntax.getErrorMapping();
     // Ajusta el mapeig d'errors
     for (let i = 0; i < errors.length; i++) {
       const error = errors[i];
       for (let j = 0; j < errorMapping.length; j++) {
         const mapping = errorMapping[j];
         if (mapping.codeerror === error.errorCode) {
-          if (mapping.map) {
-            for (const mapRule of mapping.map) {
-              if (mapRule.levelStart && mapRule.levelStart > this.level)
-                continue;
-              if (mapRule.levelEnd && mapRule.levelEnd < this.level) continue;
-
-              if (mapRule.command) {
-                // Check if the error is related to this command
-                // This is tricky because HHError doesn't store the command explicitly unless we parse onText or look at context
-                // But often onText IS the command text or related.
-                // Let's assume we can't easily check command unless we passed it.
-                // But wait, error.onText might be the command text.
-                if (error.onText !== mapRule.command) continue;
-              }
-
-              if (mapRule.hasAfter) {
-                const after = line.substring(error.end);
-                if (!after.match(mapRule.hasAfter)) continue;
-              }
-
-              errors[i].set(mapRule.codeerror);
-              break; // Apply first valid mapping
-            }
-          }
+          if (mapping.on && !mapping.on.includes(error.onText)) continue;
+          errors[i].set(mapping.to);
           break;
         }
       }
@@ -911,3 +890,5 @@ export class CheckHedy {
     return [];
   }
 }
+
+export { CheckHedy };

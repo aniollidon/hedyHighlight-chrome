@@ -1,44 +1,53 @@
-import commands from './commands.js'
-import specificErrors from './specific-errors.js'
-import generalSyntax from './general-syntax.js'
-import errorMapping from './error-mapping.js'
+import commands from "./commands.js";
+import specificHedyErrors from "./specific-errors.js";
+import { hedyGeneralSyntax } from "./general-syntax.js";
+import { errorMapping } from "./error-mapping.js";
 
-export class hedyCommands {
-    constructor(level) {
-        this.level = level
-        this.commands = commands.filter(c => {
-            return (c.levelStart === undefined || c.levelStart <= level) && (c.levelEnd === undefined || c.levelEnd >= level)
-        })
-        this.specificErrors = specificErrors.filter(c => {
-            return (c.levelStart === undefined || c.levelStart <= level) && (c.levelEnd === undefined || c.levelEnd >= level)
-        })
-        this.generalSyntax = generalSyntax.filter(c => {
-            return (c.levelStart === undefined || c.levelStart <= level) && (c.levelEnd === undefined || c.levelEnd >= level)
-        })
-        this.errorMapping = errorMapping
-    }
+class Command {
+  constructor(obj) {
+    Object.assign(this, obj);
+    this.isSymbol = this.text.match("^[a-z]") === null;
+    this.rtext = this.text.replace(/[+*]/g, "\\$&");
+    if (!this.isSymbol) this.rtext = `\\b${this.rtext}\\b`;
 
-    getCommand(command) {
-        return this.commands.find(c => c.text === command)
-    }
+    if (!this.arguments) this.arguments = [];
 
-    getCommandByName(name) {
-        return this.commands.find(c => c.name === name)
-    }
-
-    getCommands() {
-        return this.commands
-    }
-
-    getSpecificErrors() {
-        return this.specificErrors
-    }
-
-    getGeneralSyntax() {
-        return this.generalSyntax
-    }
-
-    getErrorMapping() {
-        return this.errorMapping
-    }
+    if (!this.name) this.name = this.text;
+  }
 }
+
+class hedyCommands {
+  constructor(level) {
+    this.level = level;
+    this.commands = {};
+
+    for (const comm of commands) {
+      const obj = new Command(comm);
+
+      if (obj.syntax) {
+        for (const syntax of obj.syntax) {
+          if (syntax.levelStart && level < syntax.levelStart) continue;
+          if (syntax.levelEnd && level > syntax.levelEnd) continue;
+
+          // Afegeix a la comanda qualsevol element de sintaxi (exeptuant levelStart i levelEnd)
+          for (const key in syntax) {
+            if (key !== "levelStart" && key !== "levelEnd") {
+              obj[key] = syntax[key];
+            }
+          }
+        }
+      }
+      this.commands[obj.name] = obj;
+    }
+  }
+
+  getByName(name) {
+    return this.commands[name];
+  }
+
+  getAll() {
+    return Object.values(this.commands);
+  }
+}
+
+export { hedyCommands, specificHedyErrors, hedyGeneralSyntax, errorMapping };
