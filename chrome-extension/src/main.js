@@ -21,6 +21,29 @@ export function main() {
     return
   }
 
+  // Load user configuration (long hover syntax disabled by default)
+  function sendConfig(cfg) {
+    window.postMessage({ type: 'HEDY_CONFIG', config: cfg }, '*')
+  }
+  const defaultConfig = { longHoverSyntaxEnabled: false }
+  try {
+    if (chrome && chrome.storage && chrome.storage.sync) {
+      chrome.storage.sync.get(defaultConfig, data => {
+        sendConfig({ longHoverSyntaxEnabled: !!data.longHoverSyntaxEnabled })
+      })
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'sync' && changes.longHoverSyntaxEnabled) {
+          sendConfig({ longHoverSyntaxEnabled: !!changes.longHoverSyntaxEnabled.newValue })
+        }
+      })
+    } else {
+      sendConfig(defaultConfig)
+    }
+  } catch (e) {
+    console.warn('Hedy Error Highlighter: Unable to access chrome.storage', e)
+    sendConfig(defaultConfig)
+  }
+
   // Listen for messages from Bridge (Main World)
   window.addEventListener('message', event => {
     // We only accept messages from ourselves (window)
@@ -99,7 +122,35 @@ export function main() {
       }
     } catch (e) {}
 
+    // Build phrase (syntactic) data for long-hover schemas
+    const phrases = []
+    try {
+      if (hedy && hedy.memory && Array.isArray(hedy.memory.past)) {
+        for (const sint of hedy.memory.past) {
+          // Traverse words recursively
+          const stack = [...sint.words]
+          while (stack.length) {
+            const w = stack.pop()
+            const wStart = w.pos
+            const wEnd = w.end !== undefined ? w.end : w.pos + w.text.length
+            // Include phrase-like tokens (those with subphrase or composite tags)
+            if (w.subphrase) {
+              phrases.push({ line: sint.linenum, start: wStart, end: wEnd, tag: w.tag || 'subphrase' })
+              // Push inner subphrase words
+              if (w.subphrase && w.subphrase.words) stack.push(...w.subphrase.words)
+            } else if (w.tag) {
+              phrases.push({ line: sint.linenum, start: wStart, end: wEnd, tag: w.tag })
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Hedy Error Highlighter: Failed to build phrases', e)
+    }
+
     // Send errors back to bridge for highlighting
     window.postMessage({ type: 'HEDY_HIGHLIGHT_ERRORS', errors: allErrors }, '*')
+    // Send syntactic phrases for long-hover visualization
+    window.postMessage({ type: 'HEDY_PHRASES', phrases: phrases }, '*')
   }
 }

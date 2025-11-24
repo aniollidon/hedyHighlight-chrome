@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ca">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Configuració Hedy Highlighter</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #1e1e1e;
+            color: #fafafa;
+            margin: 24px;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin: 0 0 16px;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .status {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .group {
+            background: #2a2a2a;
+            padding: 16px;
+            border-radius: 8px;
+            max-width: 480px;
+            border: 1px solid #333;
+        }
+
+        input[type=checkbox] {
+            width: 18px;
+            height: 18px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Configuració de Hedy Error Highlighter</h1>
+    <div class="group">
+        <label>
+            <input id="longHoverSyntax" type="checkbox" />
+            Activar visualització sintàctica amb long hover (>0.5s)
+        </label>
+        <div class="status" id="status">Guardant...</div>
+    </div>
+    <script src="options.js"></script>
+</body>
+
+</html>

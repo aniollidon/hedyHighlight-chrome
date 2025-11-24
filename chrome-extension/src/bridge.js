@@ -40,12 +40,29 @@ document.addEventListener('keyup', () => {
 let currentErrors = []
 let highlightRects = []
 let isUpdating = false
+let currentPhrases = []
+let lastFullCode = ''
+let longHoverTimer = null
+let longHoverTarget = null
+const LONG_HOVER_MS = 500
+let lastMouseX = 0
+let lastMouseY = 0
+let lastHoverOverError = false
+let longHoverEnabled = false
 
 window.addEventListener('message', event => {
   if (event.source !== window || !event.data.type) return
   if (event.data.type === 'HEDY_HIGHLIGHT_ERRORS') {
     currentErrors = event.data.errors
     requestUpdate()
+  }
+  if (event.data.type === 'HEDY_PHRASES') {
+    currentPhrases = event.data.phrases || []
+  }
+  if (event.data.type === 'HEDY_CONFIG') {
+    if (event.data.config) {
+      longHoverEnabled = !!event.data.config.longHoverSyntaxEnabled
+    }
   }
 })
 
@@ -71,11 +88,33 @@ tooltip.style.backgroundImage = 'linear-gradient(135deg, #1e1e1e 0%, #242424 100
 tooltip.style.zIndex = '29'
 tooltip.style.pointerEvents = 'none'
 tooltip.style.display = 'none'
-tooltip.style.maxWidth = '360px'
+tooltip.style.maxWidth = '500px'
 tooltip.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)'
 tooltip.style.whiteSpace = 'pre-wrap'
 tooltip.style.userSelect = 'none'
 document.body.appendChild(tooltip)
+
+const syntaxTooltip = document.createElement('div')
+syntaxTooltip.className = 'hedy-syntax-tooltip'
+syntaxTooltip.style.position = 'fixed'
+syntaxTooltip.style.background = '#2a2a3a'
+syntaxTooltip.style.color = '#e0e0ff'
+syntaxTooltip.style.padding = '8px 12px'
+syntaxTooltip.style.borderRadius = '6px'
+syntaxTooltip.style.fontSize = '11px'
+syntaxTooltip.style.fontFamily = "Consolas, 'Cascadia Code', Menlo, Monaco, 'SFMono-Regular', monospace"
+syntaxTooltip.style.letterSpacing = '0.2px'
+syntaxTooltip.style.lineHeight = '1.4'
+syntaxTooltip.style.border = '1px solid #4a5a8a'
+syntaxTooltip.style.backgroundImage = 'linear-gradient(135deg, #2a2a3a 0%, #353555 100%)'
+syntaxTooltip.style.zIndex = '28'
+syntaxTooltip.style.pointerEvents = 'none'
+syntaxTooltip.style.display = 'none'
+syntaxTooltip.style.maxWidth = '520px'
+syntaxTooltip.style.boxShadow = '0 4px 12px rgba(100,100,200,0.3)'
+syntaxTooltip.style.whiteSpace = 'pre-wrap'
+syntaxTooltip.style.userSelect = 'none'
+document.body.appendChild(syntaxTooltip)
 
 window.addEventListener(
   'mousemove',
@@ -88,7 +127,9 @@ window.addEventListener(
         e.clientY >= item.rect.top &&
         e.clientY <= item.rect.bottom
       ) {
-        tooltip.innerText = item.message
+        tooltip.innerHTML = item.errorCode
+          ? `${item.message} <span style="color:#888">(${item.errorCode})</span>`
+          : item.message
         tooltip.style.display = 'block'
         tooltip.style.left = `${e.clientX + 10}px`
         tooltip.style.top = `${e.clientY + 10}px`
@@ -96,7 +137,13 @@ window.addEventListener(
         break
       }
     }
-    if (!hovered) tooltip.style.display = 'none'
+    if (!hovered) {
+      tooltip.style.display = 'none'
+      syntaxTooltip.style.display = 'none'
+    }
+
+    // Long-hover detection (syntactic schema)
+    handleLongHover(e, hovered)
   },
   { passive: true },
 )
@@ -112,7 +159,9 @@ window.addEventListener(
         e.clientY >= item.rect.top &&
         e.clientY <= item.rect.bottom
       ) {
-        tooltip.innerText = item.message
+        tooltip.innerHTML = item.errorCode
+          ? `${item.message} <span style="color:#888">(${item.errorCode})</span>`
+          : item.message
         tooltip.style.display = 'block'
         if (!tooltip._arrow) {
           const arrow = document.createElement('div')
@@ -156,10 +205,126 @@ window.addEventListener(
         break
       }
     }
-    if (!hovered) tooltip.style.display = 'none'
+    if (!hovered) {
+      tooltip.style.display = 'none'
+      syntaxTooltip.style.display = 'none'
+    }
+
+    // Long-hover detection also here (second listener positioning arrow)
+    handleLongHover(e, hovered)
   },
   { passive: true },
 )
+
+function handleLongHover(e, overError) {
+  if (!longHoverEnabled) return
+  lastMouseX = e.clientX
+  lastMouseY = e.clientY
+  lastHoverOverError = overError
+  const editorContainer = document.getElementById('editor')
+  if (!editorContainer) return
+  const cmContent = editorContainer.querySelector('.cm-content')
+  if (!cmContent) return
+
+  // Determine line element under cursor
+  const el = document.elementFromPoint(e.clientX, e.clientY)
+  if (!el) return
+  const lineEl = el.closest('.cm-line')
+  if (!lineEl) {
+    clearLongHover()
+    return
+  }
+  const lines = Array.from(cmContent.querySelectorAll('.cm-line'))
+  const lineIndex = lines.indexOf(lineEl)
+  if (lineIndex === -1) {
+    clearLongHover()
+    return
+  }
+
+  // Estimate character index using Range
+  let charIndex = 0
+  try {
+    const range = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null
+    if (range) {
+      // Accumulate text length up to range start within line
+      const walker = document.createTreeWalker(lineEl, NodeFilter.SHOW_TEXT, null)
+      while (walker.nextNode()) {
+        const node = walker.currentNode
+        if (node === range.startContainer) {
+          charIndex += range.startOffset
+          break
+        } else {
+          charIndex += node.nodeValue.length
+        }
+      }
+    } else {
+      // Fallback: entire line length (approx end)
+      charIndex = lineEl.innerText.length
+    }
+  } catch (err) {}
+
+  const key = lineIndex + ':' + charIndex
+  if (longHoverTarget !== key) {
+    longHoverTarget = key
+    if (longHoverTimer) clearTimeout(longHoverTimer)
+    const scheduledX = lastMouseX
+    const scheduledY = lastMouseY
+    longHoverTimer = setTimeout(
+      () => showSyntacticSchema(lineIndex, charIndex, lineEl.innerText, scheduledX, scheduledY),
+      LONG_HOVER_MS,
+    )
+  }
+}
+
+function clearLongHover() {
+  longHoverTarget = null
+  if (longHoverTimer) clearTimeout(longHoverTimer)
+  longHoverTimer = null
+}
+
+function showSyntacticSchema(line, charIndex, lineText, mouseX, mouseY) {
+  const related = currentPhrases.filter(p => p.line === line && p.start <= charIndex && charIndex < p.end)
+  if (related.length === 0) {
+    syntaxTooltip.style.display = 'none'
+    return
+  }
+  related.sort((a, b) => b.end - b.start - (a.end - a.start))
+
+  const linesOut = []
+  linesOut.push(lineText)
+  for (const p of related) {
+    const overlayChars = Array(lineText.length).fill(' ')
+    for (let i = p.start; i < p.end && i < overlayChars.length; i++) overlayChars[i] = '¨'
+    linesOut.push(overlayChars.join('') + ' <- ' + p.tag)
+  }
+  const content = linesOut.join('\n')
+  syntaxTooltip.style.display = 'block'
+  syntaxTooltip.innerHTML = `<pre style="margin:0;color:#e0e0ff">${escapeHtml(content)}</pre>`
+  const lineRect =
+    lineText && document.elementFromPoint
+      ? document.elementFromPoint(mouseX, mouseY)?.closest('.cm-line')?.getBoundingClientRect()
+      : null
+  if (lineRect) {
+    const errorTooltipVisible = tooltip.style.display === 'block'
+    if (errorTooltipVisible) {
+      const errorRect = tooltip.getBoundingClientRect()
+      syntaxTooltip.style.left = `${lineRect.left + 4}px`
+      syntaxTooltip.style.top = `${Math.max(4, errorRect.top - syntaxTooltip.offsetHeight - 8)}px`
+    } else {
+      syntaxTooltip.style.left = `${lineRect.left + 4}px`
+      syntaxTooltip.style.top = `${Math.max(4, lineRect.top - syntaxTooltip.offsetHeight - 4)}px`
+    }
+  }
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 function requestUpdate() {
   if (!isUpdating) {
@@ -294,6 +459,7 @@ function createErrorHighlight(error, lineElement, overlay, editorRect) {
         highlightRects.push({
           rect: rect,
           message: error.message,
+          errorCode: error.errorCode,
           severity: severity,
           anchorLeft: first.left,
           anchorTop: first.top,
