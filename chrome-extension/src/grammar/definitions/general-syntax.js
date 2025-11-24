@@ -12,6 +12,10 @@
 
 const hedyGeneralSyntax = [
   {
+    refused: ["constant_blank"],
+    codeerror: "hy-blanks-not-allowed",
+  },
+  {
     allowed: [
       "call_echo",
       "call_function",
@@ -30,10 +34,6 @@ const hedyGeneralSyntax = [
     levelStart: 2,
     codeerror: "hy-ask-not-in-definition",
     positionInSintagma: 0,
-  },
-  {
-    refused: ["constant_blank"],
-    codeerror: "hy-blanks-not-allowed",
   },
   {
     levelStart: 12,

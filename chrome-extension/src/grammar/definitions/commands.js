@@ -197,7 +197,8 @@ const commandDefinition = [
     text: "echo",
     atBegining: true,
     levelEnd: 1,
-    minArgumentsAfter: 1,
+    minArgumentsAfter: 0,
+    maxArgumentsAfter: 1,
   },
   {
     text: "right",

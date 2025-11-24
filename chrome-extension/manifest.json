@@ -1,38 +1,20 @@
 {
-    "manifest_version": 3,
-    "name": "Hedy Error Highlighter",
-    "version": "1.0",
-    "description": "Adds error highlighting to the Hedy code editor.",
-    "permissions": [
-        "activeTab",
-        "scripting"
-    ],
-    "content_scripts": [
-        {
-            "matches": [
-                "https://hedy.org/*",
-                "http://hedy.org/*",
-                "*://*.hedy.org/*"
-            ],
-            "js": [
-                "loader.js"
-            ],
-            "css": [
-                "styles.css"
-            ]
-        }
-    ],
-    "web_accessible_resources": [
-        {
-            "resources": [
-                "src/**/*.js",
-                "src/*.js"
-            ],
-            "matches": [
-                "https://hedy.org/*",
-                "http://hedy.org/*",
-                "*://*.hedy.org/*"
-            ]
-        }
-    ]
+  "manifest_version": 3,
+  "name": "Hedy Error Highlighter",
+  "version": "1.0",
+  "description": "Adds error highlighting to the Hedy code editor.",
+  "permissions": ["activeTab", "scripting"],
+  "content_scripts": [
+    {
+      "matches": ["https://hedy.org/*", "http://hedy.org/*", "*://*.hedy.org/*"],
+      "js": ["loader.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/**/*.js", "src/*.js"],
+      "matches": ["https://hedy.org/*", "http://hedy.org/*", "*://*.hedy.org/*"]
+    }
+  ]
 }
