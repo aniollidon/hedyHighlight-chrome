@@ -1,5 +1,7 @@
 import { CheckHedy } from './grammar/checks.js'
 import langHandler from './lang/lang.js'
+import { extractQuotedStrings, extractUnquotedStrings } from './spellcheck.js'
+import { SpellCheckManager } from './spellcheck-manager.js'
 
 export function main() {
   // Detect Hedy level
@@ -21,22 +23,42 @@ export function main() {
     return
   }
 
-  // Load user configuration (long hover syntax disabled by default)
+  const spellManager = new SpellCheckManager()
+
   function sendConfig(cfg) {
+    if (cfg.spellCheckEnabled !== undefined) spellCheckEnabled = !!cfg.spellCheckEnabled
+    if (cfg.extensionLanguage !== undefined) extensionLanguage = cfg.extensionLanguage
+    spellManager.updateConfig({ enabled: spellCheckEnabled, language: extensionLanguage })
     window.postMessage({ type: 'HEDY_CONFIG', config: cfg }, '*')
   }
-  const defaultConfig = { longHoverSyntaxEnabled: false }
+
+  const defaultConfig = { longHoverSyntaxEnabled: false, spellCheckEnabled: true, extensionLanguage: 'ca' }
   try {
     if (chrome && chrome.storage && chrome.storage.sync) {
       chrome.storage.sync.get(defaultConfig, data => {
-        sendConfig({ longHoverSyntaxEnabled: !!data.longHoverSyntaxEnabled })
+        const lang = data.extensionLanguage || 'ca'
+        langHandler.setLang(lang)
+        sendConfig({
+          longHoverSyntaxEnabled: !!data.longHoverSyntaxEnabled,
+          spellCheckEnabled: !!data.spellCheckEnabled,
+          extensionLanguage: lang,
+        })
       })
       chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === 'sync' && changes.longHoverSyntaxEnabled) {
-          sendConfig({ longHoverSyntaxEnabled: !!changes.longHoverSyntaxEnabled.newValue })
+        if (area === 'sync') {
+          const newCfg = {}
+          if (changes.longHoverSyntaxEnabled) newCfg.longHoverSyntaxEnabled = !!changes.longHoverSyntaxEnabled.newValue
+          if (changes.spellCheckEnabled) newCfg.spellCheckEnabled = !!changes.spellCheckEnabled.newValue
+          if (changes.extensionLanguage) {
+            const newLang = changes.extensionLanguage.newValue
+            langHandler.setLang(newLang)
+            newCfg.extensionLanguage = newLang
+          }
+          if (Object.keys(newCfg).length > 0) sendConfig(newCfg)
         }
       })
     } else {
+      langHandler.setLang('ca')
       sendConfig(defaultConfig)
     }
   } catch (e) {
@@ -65,6 +87,10 @@ export function main() {
   })
 
   let lastAnalyzedText = ''
+  let extensionLanguage = 'ca'
+  let spellCheckEnabled = true
+
+  // SpellCheckManager now handles throttling & diffing
 
   const analyzeCode = text => {
     if (!text) return
@@ -80,8 +106,8 @@ export function main() {
     }
 
     const lines = text.split('\n')
-    console.log('Hedy Error Highlighter: Analyzing code...', lines)
     let allErrors = []
+    let allSpellingErrors = []
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
@@ -89,7 +115,8 @@ export function main() {
 
       try {
         const errors = hedy.analyse(lineCode, i)
-        if (errors && errors.length > 0) {
+        const hasErrors = errors && errors.length > 0
+        if (hasErrors) {
           console.log(`Hedy Error Highlighter: Found ${errors.length} errors on line ${i}:`, errors)
           // Map errors to plain objects to ensure they can be cloned by postMessage
           const plainErrors = errors.map(e => ({
@@ -101,6 +128,28 @@ export function main() {
             severity: e.severity, // pass severity for coloring
           }))
           allErrors = allErrors.concat(plainErrors)
+        }
+
+        // Extract quoted strings for spell check
+        if (spellCheckEnabled && hedy && hedy.memory && hedy.memory.past) {
+          const currentLineSintagmas = hedy.memory.past.filter(s => s.linenum === i)
+          for (const sint of currentLineSintagmas) {
+            const quotedStrings = extractQuotedStrings(sint.words, i)
+            if (quotedStrings && quotedStrings.length) {
+              allSpellingErrors = allSpellingErrors.concat(quotedStrings)
+            }
+          }
+        }
+
+        // Extract unquoted_string tokens only if the line has no Hedy errors/warnings
+        if (spellCheckEnabled && !hasErrors && hedy && hedy.memory && hedy.memory.past) {
+          const currentLineSintagmas = hedy.memory.past.filter(s => s.linenum === i)
+          for (const sint of currentLineSintagmas) {
+            const unquotedStrings = extractUnquotedStrings(sint.words, i)
+            if (unquotedStrings && unquotedStrings.length) {
+              allSpellingErrors = allSpellingErrors.concat(unquotedStrings)
+            }
+          }
         }
       } catch (e) {
         console.error(`Hedy Error Highlighter: Error analyzing line ${i + 1}:`, e)
@@ -152,5 +201,12 @@ export function main() {
     window.postMessage({ type: 'HEDY_HIGHLIGHT_ERRORS', errors: allErrors }, '*')
     // Send syntactic phrases for long-hover visualization
     window.postMessage({ type: 'HEDY_PHRASES', phrases: phrases }, '*')
+
+    if (spellCheckEnabled) {
+      console.log('Hedy Error Highlighter: Passing', allSpellingErrors.length, 'tokens to SpellCheckManager')
+      spellManager.processQuotedStrings(allSpellingErrors, text)
+    } else {
+      window.postMessage({ type: 'HEDY_SPELL_ERRORS', errors: [] }, '*')
+    }
   }
 }

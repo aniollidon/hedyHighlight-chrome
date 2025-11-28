@@ -42,16 +42,50 @@
             width: 18px;
             height: 18px;
         }
+
+        select {
+            padding: 6px 8px;
+            border-radius: 4px;
+            background: #1e1e1e;
+            color: #fafafa;
+            border: 1px solid #555;
+            font-size: 14px;
+        }
+
+        .option-group {
+            margin-bottom: 16px;
+        }
+
+        .option-group label {
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 
 <body>
     <h1>Configuració de Hedy Error Highlighter</h1>
     <div class="group">
-        <label>
-            <input id="longHoverSyntax" type="checkbox" />
-            Activar visualització sintàctica amb long hover (>0.5s)
-        </label>
+        <div class="option-group">
+            <label>
+                <input id="longHoverSyntax" type="checkbox" />
+                Activar visualització sintàctica amb long hover (>0.5s)
+            </label>
+        </div>
+        <div class="option-group">
+            <label>
+                <input id="spellCheckEnabled" type="checkbox" />
+                Activar correcció ortogràfica (textos entrecomats)
+            </label>
+        </div>
+        <div class="option-group">
+            <label>
+                Llengua de l'extensió:
+                <select id="extensionLanguage">
+                    <option value="ca">Català</option>
+                    <option value="en">Anglès</option>
+                </select>
+            </label>
+        </div>
         <div class="status" id="status">Guardant...</div>
     </div>
     <script src="options.js"></script>
