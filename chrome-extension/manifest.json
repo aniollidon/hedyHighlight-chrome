@@ -3,7 +3,7 @@
   "name": "Hedy Error Highlighter",
   "version": "1.0",
   "description": "Adds error highlighting to the Hedy code editor.",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": ["storage"],
   "options_page": "options.html",
   "content_scripts": [
     {
