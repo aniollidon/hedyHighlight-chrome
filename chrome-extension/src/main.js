@@ -117,7 +117,7 @@ export function main() {
         const errors = hedy.analyse(lineCode, i)
         const hasErrors = errors && errors.length > 0
         if (hasErrors) {
-          console.log(`Hedy Error Highlighter: Found ${errors.length} errors on line ${i}:`, errors)
+          //console.log(`Hedy Error Highlighter: Found ${errors.length} errors on line ${i}:`, errors)
           // Map errors to plain objects to ensure they can be cloned by postMessage
           const plainErrors = errors.map(e => ({
             message: e.message || e.getMessage(), // Ensure message is extracted
@@ -203,7 +203,7 @@ export function main() {
     window.postMessage({ type: 'HEDY_PHRASES', phrases: phrases }, '*')
 
     if (spellCheckEnabled) {
-      console.log('Hedy Error Highlighter: Passing', allSpellingErrors.length, 'tokens to SpellCheckManager')
+      //console.log('Hedy Error Highlighter: Passing', allSpellingErrors.length, 'tokens to SpellCheckManager')
       spellManager.processQuotedStrings(allSpellingErrors, text)
     } else {
       window.postMessage({ type: 'HEDY_SPELL_ERRORS', errors: [] }, '*')

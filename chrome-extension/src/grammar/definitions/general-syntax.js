@@ -5,52 +5,59 @@
     + refused: Array amb els tags o grup de tags no permesos (default = NO CHECK)
     + levelStart: Nivell on comença la comanda [inclusiu] (default =1)
     + levelEnd: Nivell on acaba la comanda [inclusiu] (default =17)
-    + subphrase: Subfrase on pertany (default = ANY)
+    + subphrase: Subfrase (subsintagma) on pertany (default = ANY) *Un subsintagma és una unitat dins un sintagma (ex: operació dins una expressió)
+    + subpartial: Subfrase (subparcial) on pertany (default = ANY) *Un subparcial és un sintagma consecutiu en una frase (ex: condició->acció)
     + positionInSintagma: Comprova a la posició de la paraula en el sintagma (default = NO CHECK)
     + special_orAllowed: Afegeix les definicions a la llista de permesos, [no són una paraula]  (default = NO CHECK)
+    + identationFound: Indica si s'ha d'aplicar la regla només si hi ha identació (true) o no (false) (default = NO CHECK)
   */
+
+import * as def from './definitions.js'
 
 const hedyGeneralSyntax = [
   {
-    refused: ["constant_blank"],
-    codeerror: "hy-blanks-not-allowed",
+    refused: ['constant_blank'],
+    codeerror: 'hy-blanks-not-allowed',
   },
   {
-    allowed: [
-      "call_echo",
-      "call_function",
-      "call_ask",
-      "call_print",
-      "command",
-      "declaration",
-    ],
-    codeerror: "hy-lines-must-start-with",
+    allowed: ['call_echo', 'call_function', 'call_ask', 'call_print', 'command', 'declaration'],
+    codeerror: 'hy-lines-must-start-with',
     positionInSintagma: 0,
     subphrase: 0,
-    highlight: "line",
+    highlight: 'line',
   },
   {
-    refused: ["call_ask"],
-    levelStart: 2,
-    codeerror: "hy-ask-not-in-definition",
+    refused: ['call_ask'],
+    levelStart: def.CMD_ASK_IS.start,
+    codeerror: 'hy-ask-not-in-definition',
     positionInSintagma: 0,
   },
   {
-    levelStart: 12,
-    refused: ["constant_string_unquoted"],
-    codeerror: "hy-text-must-be-quoted",
+    levelStart: def.COMETES_ARREU.start,
+    refused: ['constant_string_unquoted'],
+    codeerror: 'hy-text-must-be-quoted',
   },
   {
-    levelEnd: 11,
-    refused: ["constant_number_decimal"],
-    codeerror: "hy-not-decimals",
-  },
-  {
-    refused: ["call_function_return"],
+    refused: ['call_function_return'],
     subphrase: 0,
-    levelStart: 14,
-    codeerror: "hy-function-return-unused",
+    levelStart: def.RETURN_FUNCTION.start,
+    codeerror: 'hy-function-return-unused',
   },
-];
 
-export { hedyGeneralSyntax };
+  {
+    subpartial: 1,
+    levelStart: def.CONDITIONAL_INLINE_WARN.start,
+    codeerror: 'hy-actions-must-be-in-next-sentence',
+  },
+
+  {
+    subpartial: 0,
+    subphrase: 0,
+    identationFound: true,
+    levelEnd: def.USES_SCOPE.before(),
+    codeerror: 'hy-identation-not-expected-yet',
+    highlight: 'identation',
+  },
+]
+
+export { hedyGeneralSyntax }

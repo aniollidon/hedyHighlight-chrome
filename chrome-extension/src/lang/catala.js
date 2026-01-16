@@ -169,6 +169,12 @@ const errors = {
   'hy-not-decimals': {
     message: 'En aquest nivell els decimals encara no estan permesos.',
   },
+  'hy-not-print-decimals': {
+    message: 'No es poden imprimir números decimals en aquest nivell, posa-hi cometes al voltant i serà un text.',
+  },
+  'hy-not-numbers': {
+    message: 'En aquest nivell els números encara no estan permesos. Posa-hi cometes i serà un text.',
+  },
   'hy-else-elif-needs-if': {
     message: "La comanda '[NAME]' espera que s'hagi usat 'if' anteriorment.",
   },
@@ -177,6 +183,9 @@ const errors = {
   },
   'hy-identation-not-expected': {
     message: "La identació no és correcta. Només després d'un bucle o condició cal indentar.",
+  },
+  'hy-identation-not-expected-yet': {
+    message: "Hi ha un espai abans de la línia que no hi ha de ser. Elimina'l.",
   },
   'hy-identation-large': {
     message: 'La indentació és massa gran. Afegeix només [EXPECTED] espais extres respecte la línia anterior.',
@@ -306,6 +315,9 @@ const errors = {
   },
   'hy-command-entity-conflict': {
     message: "El nom '[NAME]' s'usa per una comanda i pot causar conflictes. No es recomana utilitzar-lo.",
+  },
+  'hy-actions-must-be-in-next-sentence': {
+    message: "És molt recomanable fer un salt de línia abans de l'acció.",
   },
 }
 

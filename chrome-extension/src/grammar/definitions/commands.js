@@ -33,8 +33,10 @@
   + $value: retorns (funcions, variables, etc.)
 */
 
+import * as def from './definitions.js'
+
 const operationTemplate = {
-  levelStart: 6,
+  levelStart: def.MATES.start,
   argumentsAfter: 1,
   argumentsBefore: 1,
   concatOn: ['sum', 'rest', 'multiplication', 'division'],
@@ -50,41 +52,63 @@ const operationTemplate = {
   ],
 }
 
+const printAskTemplate = {
+  minArgumentsAfter: 1,
+  arguments: [
+    {
+      refused: ['entity_variable_list'],
+      levelEnd: def.PRINT_LIST.before(),
+      codeerror: 'hy-cant-print-list',
+    },
+    {
+      refused: ['entity_variable_list'],
+      levelStart: def.PRINT_LIST.start,
+      codeerror: 'hy-softwarn-print-list',
+    },
+    {
+      refused: ['entity_function'],
+      codeerror: 'hy-cant-print-function',
+    },
+    {
+      levelStart: def.COMETES_TEXTOS.start,
+      refused: ['constant_string_unquoted'],
+      codeerror: 'hy-text-must-be-quoted',
+    },
+    {
+      levelStart: def.COMETES_TEXTOS.start,
+      levelEnd: def.PRINT_BOOLEANS.before(),
+      allowed: ['$number', '$quoted'],
+      codeerror: 'hy-execting-number-string',
+    },
+    {
+      levelStart: def.PRINT_BOOLEANS.start,
+      allowed: ['$number', '$quoted', 'constant_boolean'],
+      codeerror: 'hy-execting-number-string',
+    },
+    {
+      refused: ['command'],
+      codeerror: 'hy-refused-command-for-print',
+    },
+    {
+      levelStart: def.COMETES_TEXTOS.start,
+      levelEnd: def.NUMBERS.before(),
+      refused: ['constant_number'],
+      codeerror: 'hy-not-numbers',
+    },
+    {
+      levelStart: def.DECIMALS.start,
+      levelEnd: def.PRINT_DECIMALS.before(),
+      refused: ['constant_number_decimal'],
+      codeerror: 'hy-not-print-decimals',
+    },
+  ],
+}
+
 const commandDefinition = [
   {
     text: 'print',
     atBegining: true,
-    minArgumentsAfter: 1,
-    arguments: [
-      {
-        refused: ['entity_variable_list'],
-        levelEnd: 15,
-        codeerror: 'hy-cant-print-list',
-      },
-      {
-        refused: ['entity_variable_list'],
-        levelStart: 16,
-        codeerror: 'hy-softwarn-print-list',
-      },
-      {
-        refused: ['entity_function'],
-        codeerror: 'hy-cant-print-function',
-      },
-      {
-        levelStart: 4,
-        refused: ['constant_string_unquoted'],
-        codeerror: 'hy-text-must-be-quoted',
-      },
-      {
-        levelStart: 4,
-        allowed: ['$number', '$quoted'],
-        codeerror: 'hy-execting-number-string',
-      },
-      {
-        refused: ['command'],
-        codeerror: 'hy-refused-command-for-print',
-      },
-    ],
+    ...printAskTemplate,
   },
   {
     text: 'turn',
@@ -92,7 +116,7 @@ const commandDefinition = [
     argumentsAfter: 1,
     arguments: [
       {
-        levelStart: 2,
+        levelStart: def.CMD_TURN_ANGLE.start,
         allowed: ['$number'],
         codeerror: 'hy-execting-number',
       },
@@ -133,7 +157,7 @@ const commandDefinition = [
   },
   {
     text: 'sleep',
-    levelStart: 2,
+    levelStart: def.CMD_SLEEP.start,
     atBegining: true,
     argumentsAfter: [1, 0],
     arguments: [
@@ -145,85 +169,59 @@ const commandDefinition = [
   },
   {
     text: 'clear',
-    levelStart: 4,
+    levelStart: def.CMD_CLEAR.start,
     atBegining: true,
     argumentsAfter: 0,
   },
   {
     text: 'ask',
     name: 'ask1',
-    levelEnd: 1,
+    levelStart: def.CMD_ASK_NOIS.start,
+    levelEnd: def.CMD_ASK_NOIS.end,
     atBegining: true,
     minArgumentsAfter: 1,
   },
   {
     text: 'ask',
     hasBefore: /^[\p{L}_\d]+ (is|=)$/gu,
-    levelStart: 2,
-    levelEnd: 18,
-    minArgumentsAfter: 1,
-    arguments: [
-      {
-        refused: ['entity_variable_list'],
-        levelEnd: 15,
-        codeerror: 'hy-cant-print-list',
-      },
-      {
-        refused: ['entity_variable_list'],
-        levelStart: 16,
-        codeerror: 'hy-softwarn-print-list',
-      },
-      {
-        refused: ['entity_function'],
-        codeerror: 'hy-cant-print-function',
-      },
-      {
-        levelStart: 4,
-        refused: ['constant_string_unquoted'],
-        codeerror: 'hy-text-must-be-quoted',
-      },
-      {
-        levelStart: 4,
-        allowed: ['$number', '$quoted'],
-        codeerror: 'hy-execting-number-string',
-      },
-      {
-        refused: ['command'],
-        codeerror: 'hy-refused-command-for-print',
-      },
-    ],
+    levelStart: def.CMD_ASK_IS.start,
+    levelEnd: def.CMD_ASK_IS.end,
+    ...printAskTemplate,
   },
   {
     text: 'echo',
     atBegining: true,
-    levelEnd: 1,
+    levelStart: def.CMD_ECHO.start,
+    levelEnd: def.CMD_ECHO.end,
     minArgumentsAfter: 0,
     maxArgumentsAfter: 1,
   },
   {
     text: 'right',
     hasBefore: /^turn$/g,
-    levelEnd: 1,
+    levelStart: def.CMD_TURN_LEFTRIGHT.start,
+    levelEnd: def.CMD_TURN_LEFTRIGHT.end,
   },
   {
     text: 'left',
     hasBefore: /^turn$/g,
-    levelEnd: 1,
+    levelStart: def.CMD_TURN_LEFTRIGHT.start,
+    levelEnd: def.CMD_TURN_LEFTRIGHT.end,
   },
   {
     text: 'is',
     name: 'compare_is',
-    levelStart: 2,
+    levelStart: def.CMD_IS.start,
     argumentsAfter: 1,
     hasBefore: /^(if|elif|while) .*/gu,
     arguments: [
       {
-        levelEnd: 11,
+        levelEnd: def.COMETES_ARREU.before(),
         allowed: ['$number', '$string', 'command_pressed'],
         codeerror: 'hy-execting-number-string',
       },
       {
-        levelStart: 12,
+        levelStart: def.COMETES_ARREU.start,
         allowed: ['$number', '$quoted', 'command_pressed', '$boolean'],
         codeerror: 'hy-execting-number-string',
       },
@@ -245,22 +243,22 @@ const commandDefinition = [
     // No hauria d'importar l'ordre, però sino no funciona l'error hy-variabledef-multiplewords
     text: 'is',
     name: 'variable_define_is',
-    levelStart: 2,
+    levelStart: def.CMD_IS.start,
     concatOn: ['comma_list'],
     hasBefore: /^[\p{L}\d_]+ *(\[ *[\p{L}\d_]+ *\])?$/gu,
     syntax: [
       {
         minArgumentsAfter: 1,
-        levelEnd: 11,
+        levelEnd: def.COMETES_ARREU.before(),
       },
       {
         argumentsAfter: 1,
-        levelStart: 12,
+        levelStart: def.COMETES_ARREU.start,
       },
     ],
     arguments: [
       {
-        levelEnd: 11,
+        levelEnd: def.COMETES_ARREU.before(),
         refused: ['constant_string_quoted'],
         codeerror: 'hy-unnecessary-quotes',
       },
@@ -277,17 +275,17 @@ const commandDefinition = [
   {
     text: '=',
     name: 'compare_equal',
-    levelStart: 6,
+    levelStart: def.CMD_EQUAL.start,
     argumentsAfter: 1,
     hasBefore: /^(if|elif|while) .*/gu,
     arguments: [
       {
-        levelEnd: 11,
+        levelEnd: def.COMETES_ARREU.before(),
         allowed: ['$number', '$string'],
         codeerror: 'hy-execting-number-string',
       },
       {
-        levelStart: 12,
+        levelEnd: def.COMETES_ARREU.start,
         allowed: ['$number', '$quoted', '$boolean'],
         codeerror: 'hy-execting-number-string',
       },
@@ -309,22 +307,22 @@ const commandDefinition = [
     // No hauria d'importar l'ordre, però sino no funciona l'error hy-variabledef-multiplewords
     text: '=',
     name: 'variable_define_equal',
-    levelStart: 6,
+    levelStart: def.CMD_EQUAL.start,
     concatOn: ['comma_list'],
     hasBefore: /^[\p{L}\d_]+ *(\[ *[\p{L}\d_]+ *\])?$/gu,
     syntax: [
       {
         minArgumentsAfter: 1,
-        levelEnd: 11,
+        levelEnd: def.COMETES_ARREU.before(),
       },
       {
         argumentsAfter: 1,
-        levelStart: 12,
+        levelEnd: def.COMETES_ARREU.start,
       },
     ],
     arguments: [
       {
-        levelEnd: 11,
+        levelEnd: def.COMETES_ARREU.before(),
         refused: ['constant_string_quoted'],
         codeerror: 'hy-unnecessary-quotes',
       },
@@ -342,7 +340,8 @@ const commandDefinition = [
     // no hauria d'importar l'ordre, però sino no funciona l'error de deteccio de comes
     text: ',',
     name: 'comma_argument',
-    levelStart: 13,
+    levelStart: def.FUNCTIONS_WITH.start,
+    levelEnd: def.FUNCTIONS_WITH.end,
     hasBefore: /\bwith\b/g,
     argumentsAfter: 1,
     argumentsBefore: 1,
@@ -351,8 +350,8 @@ const commandDefinition = [
   {
     text: ',',
     name: 'comma_list',
-    levelStart: 3,
-    levelEnd: 15,
+    levelStart: def.NOBRACED_LISTS.start,
+    levelEnd: def.NOBRACED_LISTS.end,
     hasBefore: /is |=/g,
     argumentsAfter: 1,
     argumentsBefore: 1,
@@ -367,7 +366,7 @@ const commandDefinition = [
   {
     text: ',',
     name: 'comma_bracedlist',
-    levelStart: 15,
+    levelStart: def.BRACED_LIST.start,
     hasBefore: /\[/g,
     argumentsAfter: 1,
     argumentsBefore: 1,
@@ -382,33 +381,34 @@ const commandDefinition = [
   },
   {
     text: 'remove',
-    levelStart: 3,
+    levelStart: def.CMD_ADD_REMOVE.start,
     argumentsAfter: 3,
     atBegining: true,
   },
   {
     text: 'from',
-    levelStart: 3,
+    levelStart: def.CMD_ADD_REMOVE.start,
     hasBefore: /^remove [\p{L}_\d]+$/gu,
     argumentsAfter: 1,
   },
   {
     text: 'add',
-    levelStart: 3,
+    levelStart: def.CMD_ADD_REMOVE.start,
     argumentsAfter: 3,
     atBegining: true,
   },
   {
     text: 'to',
     name: 'to_list',
-    levelStart: 3,
+    levelStart: def.CMD_ADD_REMOVE.start,
     hasBefore: /^add [\p{L}_\d]+$/gu,
     argumentsAfter: 1,
   },
   {
     text: 'to',
     name: 'to_range',
-    levelStart: 11,
+    levelStart: def.CMD_RANGETO.start,
+    levelEnd: def.CMD_RANGETO.end,
     argumentsAfter: 1,
     argumentsBefore: 1,
     arguments: [
@@ -425,23 +425,24 @@ const commandDefinition = [
   },
   {
     text: 'at',
-    levelStart: 3,
-    levelEnd: 15,
+    levelStart: def.CMD_ATRANDOM.start,
+    levelEnd: def.CMD_ATRANDOM.end,
     hasBefore: /[\p{L}_\d]+$/gu,
     hasAfter: /^ *\brandom\b/gu,
     argumentsAfter: 1,
   },
   {
     text: 'random',
-    levelStart: 3,
+    levelStart: def.CMD_RANDOM.start,
+    levelEnd: def.CMD_RANDOM.end,
     syntax: [
       {
-        levelEnd: 15,
+        levelEnd: def.CMD_ATRANDOM.end,
         argumentsAfter: 0,
         hasBefore: /at\b/gu,
       },
       {
-        levelStart: 16,
+        levelStart: def.CMD_ATRANDOM.after(),
         hasBefore: /\[ */gu,
         hasAfter: / *\]/gu,
         argumentsAfter: 1,
@@ -450,13 +451,13 @@ const commandDefinition = [
   },
   {
     text: 'if',
-    levelStart: 5,
+    levelStart: def.CMD_IF_ELSE.start,
     atBegining: true,
     argumentsAfter: 1,
     syntax: [
       {
         closedBy: 'colon',
-        levelStart: 17,
+        levelStart: def.COLON.start,
       },
     ],
     arguments: [
@@ -468,49 +469,49 @@ const commandDefinition = [
   },
   {
     text: 'else',
-    levelStart: 5,
+    levelStart: def.CMD_IF_ELSE.start,
     atBegining: true,
     argumentsAfter: 0,
     syntax: [
       {
         closedBy: 'colon',
-        levelStart: 17,
+        levelStart: def.COLON.start,
       },
     ],
   },
   {
     text: 'pressed',
-    levelStart: 5,
+    levelStart: def.CMD_ISPRESSED.start,
     argumentsAfter: 0,
     hasBefore: /^if .*is/g,
   },
   {
     text: 'not',
-    levelStart: 5,
+    levelStart: def.CMD_NOT.start,
     hasBefore: /^if .*/g,
     hasAfter: /\bin\b/g,
   },
   {
     text: 'in',
-    levelStart: 5,
+    levelStart: def.CMD_IN.start,
     hasBefore: /^(if|elif|for) .*/g,
     argumentsAfter: 1,
   },
   {
     text: '+',
     name: 'sum',
-    levelStart: 6,
+    levelStart: def.MATES.start,
     argumentsAfter: 1,
     argumentsBefore: 1,
     concatOn: ['sum', 'rest', 'multiplication', 'division'],
     arguments: [
       {
-        levelEnd: 11,
+        levelEnd: def.COMETES_ARREU.before(),
         allowed: ['$number'],
         codeerror: 'hy-execting-number',
       },
       {
-        levelStart: 12,
+        levelEnd: def.COMETES_ARREU.start,
         allowed: ['$number', '$quoted'],
         codeerror: 'hy-execting-number-string',
       },
@@ -543,7 +544,7 @@ const commandDefinition = [
     text: 'repeat',
     atBegining: true,
     argumentsAfter: 2,
-    levelStart: 7,
+    levelStart: def.CMD_REPEAT.start,
     arguments: [
       {
         allowed: ['$number_integer'],
@@ -559,20 +560,20 @@ const commandDefinition = [
     syntax: [
       {
         closedBy: 'colon',
-        levelStart: 17,
+        levelStart: def.COLON.start,
       },
     ],
   },
   {
     text: 'times',
-    levelStart: 7,
+    levelStart: def.CMD_REPEAT.start,
     hasBefore: /^repeat [\p{L}_\d]+/gu,
     argumentsAfter: 0,
   },
   {
     text: 'for',
     atBegining: true,
-    levelStart: 10,
+    levelStart: def.CMD_FOR.start,
     argumentsAfter: 1,
     arguments: [
       {
@@ -583,19 +584,20 @@ const commandDefinition = [
     syntax: [
       {
         closedBy: 'colon',
-        levelStart: 17,
+        levelStart: def.COLON.start,
       },
     ],
   },
   {
     text: 'range',
-    levelStart: 11,
+    levelStart: def.CMD_RANGE_BRACED.start,
     hasBefore: /^for .* in$/g,
     argumentsAfter: 3,
   },
   {
     text: 'define',
-    levelStart: 12,
+    levelStart: def.FUNCTIONS_DEFINE_CALL.start,
+    levelEnd: def.FUNCTIONS_DEFINE_CALL.end,
     atBegining: true,
     minArgumentsAfter: 1,
     arguments: [
@@ -611,25 +613,26 @@ const commandDefinition = [
     syntax: [
       {
         closedBy: 'colon',
-        levelStart: 17,
+        levelStart: def.COLON.start,
       },
     ],
   },
   {
     text: 'call',
-    levelStart: 12,
+    levelStart: def.FUNCTIONS_DEFINE_CALL.start,
+    levelEnd: def.FUNCTIONS_DEFINE_CALL.end,
     atBegining: false,
     usesParameters: true,
   },
   {
     text: 'with',
-    levelStart: 13,
+    levelStart: def.FUNCTIONS_WITH.start,
     hasBefore: /(^define|\bcall) +/g,
     minArgumentsAfter: 1,
   },
   {
     text: 'and',
-    levelStart: 13,
+    levelStart: def.CMD_AND_OR.start,
     minArgumentsAfter: 1,
     argumentsBefore: 1,
     concatOn: ['and', 'or'],
@@ -643,7 +646,7 @@ const commandDefinition = [
   },
   {
     text: 'or',
-    levelStart: 13,
+    levelStart: def.CMD_AND_OR.start,
     minArgumentsAfter: 1,
     argumentsBefore: 1,
     concatOn: ['and', 'or'],
@@ -657,14 +660,14 @@ const commandDefinition = [
   },
   {
     text: 'return',
-    levelStart: 14,
+    levelStart: def.RETURN_FUNCTION.start,
     atBegining: true,
     argumentsAfter: 1,
   },
   {
     text: '>',
     name: 'greater_than',
-    levelStart: 14,
+    levelStart: def.COMPARE_OPERATORS.start,
     argumentsAfter: 1,
     argumentsBefore: 1,
     arguments: [
@@ -689,7 +692,7 @@ const commandDefinition = [
   {
     text: '<',
     name: 'less_than',
-    levelStart: 14,
+    levelStart: def.COMPARE_OPERATORS.start,
     argumentsAfter: 1,
     argumentsBefore: 1,
     arguments: [
@@ -714,7 +717,7 @@ const commandDefinition = [
   {
     text: '>=',
     name: 'greater_than_or_equal',
-    levelStart: 14,
+    levelStart: def.COMPARE_OPERATORS.start,
     argumentsAfter: 1,
     argumentsBefore: 1,
     arguments: [
@@ -739,7 +742,7 @@ const commandDefinition = [
   {
     text: '<=',
     name: 'less_than_or_equal',
-    levelStart: 14,
+    levelStart: def.COMPARE_OPERATORS.start,
     argumentsAfter: 1,
     argumentsBefore: 1,
     arguments: [
@@ -764,12 +767,12 @@ const commandDefinition = [
   {
     text: '==',
     name: 'compare_equalequal',
-    levelStart: 14,
+    levelStart: def.COMPARE_OPERATORS.start,
     argumentsAfter: 1,
     argumentsBefore: 1,
     arguments: [
       {
-        levelStart: 12,
+        levelEnd: def.COMETES_ARREU.start,
         allowed: ['$number', '$quoted', '$boolean'],
         codeerror: 'hy-execting-number-string',
       },
@@ -790,12 +793,12 @@ const commandDefinition = [
   {
     text: '!=',
     name: 'not_equal',
-    levelStart: 14,
+    levelStart: def.COMPARE_OPERATORS.start,
     argumentsAfter: 1,
     argumentsBefore: 1,
     arguments: [
       {
-        levelStart: 12,
+        levelEnd: def.COMETES_ARREU.start,
         allowed: ['$number', '$quoted', '$boolean'],
         refused: ['call'],
         codeerror: 'hy-execting-number-string',
@@ -816,7 +819,7 @@ const commandDefinition = [
   },
   {
     text: 'while',
-    levelStart: 15,
+    levelStart: def.CMD_WHILE.start,
     atBegining: true,
     argumentsAfter: 1,
     arguments: [
@@ -828,19 +831,19 @@ const commandDefinition = [
     syntax: [
       {
         closedBy: 'colon',
-        levelStart: 17,
+        levelStart: def.COLON.start,
       },
     ],
   },
   {
     text: '[]',
     name: 'list_empty',
-    levelStart: 16,
+    levelStart: def.BRACED_LIST.start,
   },
   {
     text: '[',
     name: 'bracket_open_access',
-    levelStart: 16,
+    levelStart: def.BRACED_LIST.start,
     argumentsAfter: 1,
     closedBy: 'bracket_close',
     hasBefore: /[\p{L}_\d]+ *$/gu,
@@ -859,7 +862,7 @@ const commandDefinition = [
   {
     text: '[',
     name: 'bracket_open_definition',
-    levelStart: 16,
+    levelStart: def.BRACED_LIST.start,
     argumentsAfter: 1,
     concatOn: ['comma_bracedlist'],
     closedBy: 'bracket_close',
@@ -873,12 +876,12 @@ const commandDefinition = [
   {
     text: ']',
     name: 'bracket_close',
-    levelStart: 16,
+    levelStart: def.BRACED_LIST.start,
     minArgumentsBefore: 1,
   },
   {
     text: 'elif',
-    levelStart: 17,
+    levelStart: def.CMD_ELIF.start,
     atBegining: true,
     argumentsAfter: 1,
     arguments: [
@@ -890,14 +893,14 @@ const commandDefinition = [
     syntax: [
       {
         closedBy: 'colon',
-        levelStart: 17,
+        levelStart: def.COLON.start,
       },
     ],
   },
   {
     text: ':',
     name: 'colon',
-    levelStart: 17,
+    levelStart: def.COLON.start,
     argumentsAfter: 0,
   },
 ]

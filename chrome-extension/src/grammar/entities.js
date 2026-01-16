@@ -1,5 +1,6 @@
 import { entreCometes } from '../utils.js'
 import { enUnaLlista, varDefinitionType } from './types.js'
+import * as def from './definitions/definitions.js'
 
 function parseImportFunctions(input) {
   input = input.replace(/[^a-zA-Z0-9,_()]/g, '') // Elimina tots els caràcters que no siguin lletres, números, comes i parèntesis
@@ -19,17 +20,16 @@ function parseImportFunctions(input) {
 class EntityDefinitions {
   constructor(level) {
     this._level = level
-    this._hasQuotes = level >= 4
-    this._hasNumbers = level >= 6
-    this._hasBooleans = level >= 15
-    this._hasScopes = level >= 8
-    this._define_var_operator = level >= 6 ? 'is|=' : 'is'
-    this._define_var_inline_if = level >= 5 && level < 8
-    this._define_var_inline_bucle = level >= 7
-    this._define_var_by_for = level >= 10
-    this._define_functions = level >= 12
-    this._define_fun_with = level >= 13
-    this._return_fun = level >= 14
+    this._hasQuotes = def.COMETES_TEXTOS.at(level)
+    this._hasNumbers = def.NUMBERS.at(level)
+    this._hasBooleans = def.BOOLEANS.at(level)
+    this._hasScopes = def.USES_SCOPE.at(level)
+    this._define_var_operator = def.CMD_EQUAL.at(level) ? 'is|=' : 'is'
+    this._define_var_inline_bucle = def.LOOP_INLINE.at(level)
+    this._define_var_by_for = def.CMD_FOR.at(level)
+    this._define_functions = def.FUNCIONS.at(level)
+    this._define_fun_with = def.FUNCTIONS_WITH.at(level)
+    this._return_fun = def.RETURN_FUNCTION.at(level)
 
     this.tokens = []
     this.names = {}
@@ -69,14 +69,15 @@ class EntityDefinitions {
     }
   }
 
-  analizeLine(text, lineNumber) {
+  analizeLine(text, lineNumber, identation = 0) {
     // troba la posició del primer caràcter no espaiat de la línia
-    const firstNoSpaceChar = text.search(/[^ ]/)
+    /*const firstNoSpaceChar = text.search(/[^ ]/)
     const specialComment = text.search('#!')
     const textEmptyOrComment = firstNoSpaceChar === -1 || (text[firstNoSpaceChar] === '#' && specialComment === -1)
 
     if (textEmptyOrComment) return // Si la línia està buida o és un comentari, no cal fer res
-    const scope = firstNoSpaceChar
+    const scope = firstNoSpaceChar*/
+    const scope = identation
 
     // Posa a lloc les variables que s'han de setejar a la següent posició i esborra aquelles fora de l'abast
     for (const variableName in this.names) {
@@ -97,10 +98,6 @@ class EntityDefinitions {
     let before_def = '^'
     if (this._define_var_inline_bucle) before_def += '|\\btimes\\b'
     let regexstr = `(?:${before_def}) *([\\p{L}_\\d]+) *( ${this._define_var_operator})`
-
-    if (this._define_var_inline_if) {
-      regexstr = `(?<!\\bif )\\b([\\p{L}_\\d]+)\\s*(?:${this._define_var_operator})\\s.*`
-    }
 
     // Regex per trobar `var is|=`
     const declarationRegex = new RegExp(regexstr, 'gu')

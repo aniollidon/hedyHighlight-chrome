@@ -1,8 +1,8 @@
 export class Sintagma {
   constructor(linenum, partialnum, subsintagmanum, words, identation, sintagmaTag) {
     this.linenum = linenum // Línia on es troba el sintagma
-    this.partialnum = partialnum // Número de sintagma en la mateixa línia
-    this.subsintagmanum = subsintagmanum // Número de subsintagma en el mateix sintagma - una word pot contenir un subsintagma
+    this.partialnum = partialnum // Un subparcial és la posició del sintagma consecutiu en una frase (ex: condició[0]->acció[1])
+    this.subsintagmanum = subsintagmanum // Un subsintagma és la posició d'una unitat dins un sintagma (ex: operació[1] dins una expressió[0])
     this.words = words
     this.identation = identation
     this.sintagmaTag = sintagmaTag

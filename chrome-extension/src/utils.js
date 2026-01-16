@@ -14,7 +14,7 @@ export function entreCometes(text, pos) {
 }
 
 export function separarParaules(codi) {
-  const regex = /'([^']*)'|"([^"]*)"|([\p{L}_\d.]+)|(\d+\.\d+|\d+)|([^\p{L}\d\s.]+)/gu
+  const regex = /'([^']*)'|"([^"]*)"|([\p{L}_\d.]+)|(\d+\.\d+|\d+)|([^\p{L}\d\s.'"]+)/gu
   let paraules = []
   let match
 

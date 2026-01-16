@@ -95,7 +95,7 @@ export async function checkSpelling(texts, language = 'ca') {
     const positionsKey = texts.map(t => `${t.line}@${t.start}`).join('|')
     const cacheKey = cleanedTexts.join('\n') + '::' + langCode + '::' + positionsKey
     if (CACHE.has(cacheKey)) {
-      console.log('SpellCheck cache hit for key:', cacheKey)
+      //console.log('SpellCheck cache hit for key:', cacheKey)
       return CACHE.get(cacheKey)
     }
 
@@ -104,7 +104,7 @@ export async function checkSpelling(texts, language = 'ca') {
     data.append('language', langCode)
     data.append('enabledOnly', 'false')
 
-    console.log('Sending spell check request to LanguageTool API with data:', data.toString())
+    //console.log('Sending spell check request to LanguageTool API with data:', data.toString())
     const response = await fetch(LANGUAGETOOL_API, {
       method: 'POST',
       body: data,

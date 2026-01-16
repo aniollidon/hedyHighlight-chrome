@@ -527,15 +527,6 @@ function highlightErrors(errors) {
   const lines = editorEl.querySelectorAll('.cm-line')
   errors.forEach(error => {
     if (lines[error.line]) {
-      try {
-        console.log('[Syntax] render error', {
-          line: error.line,
-          start: error.start,
-          end: error.end,
-          message: error.message,
-          code: error.errorCode,
-        })
-      } catch (_) {}
       createErrorHighlight(error, lines[error.line], overlay, editorRect)
     }
   })
@@ -597,12 +588,6 @@ function createErrorHighlight(error, lineElement, overlay, editorRect) {
       }
       if (!visible.length) return
       const first = visible[0]
-      try {
-        console.log(
-          '[Syntax] visible rects',
-          visible.map(r => ({ left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width })),
-        )
-      } catch (_) {}
       const last = visible[visible.length - 1]
       const waveHeight = 4
       const totalWidth = last.right - first.left
@@ -666,9 +651,6 @@ function createErrorHighlight(error, lineElement, overlay, editorRect) {
       svg.appendChild(path)
       el.appendChild(svg)
       overlay.appendChild(el)
-      try {
-        console.log('[Syntax] placed underline', { left: el.style.left, width: el.style.width, top: el.style.top })
-      } catch (_) {}
     } catch (e) {
       console.error('Hedy Bridge: Failed to get range rects', e)
     }
@@ -708,15 +690,6 @@ function highlightSpellingErrors(errors) {
   const lines = editorEl.querySelectorAll('.cm-line')
   errors.forEach(error => {
     if (lines[error.line]) {
-      try {
-        console.log('[Spelling] render error', {
-          line: error.line,
-          start: error.start,
-          end: error.end,
-          message: error.message,
-          suggestions: error.suggestions,
-        })
-      } catch (_) {}
       createSpellingHighlight(error, lines[error.line], overlay, editorRect)
     }
   })
@@ -782,12 +755,6 @@ function createSpellingHighlight(error, lineElement, overlay, editorRect) {
       if (!visible.length) return
 
       const first = visible[0]
-      try {
-        console.log(
-          '[Spelling] visible rects',
-          visible.map(r => ({ left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width })),
-        )
-      } catch (_) {}
       const waveHeight = 3
       const totalWidth = visible[visible.length - 1].right - first.left
 
@@ -860,9 +827,6 @@ function createSpellingHighlight(error, lineElement, overlay, editorRect) {
       svg.appendChild(path)
       el.appendChild(svg)
       overlay.appendChild(el)
-      try {
-        console.log('[Spelling] placed underline', { left: el.style.left, width: el.style.width, top: el.style.top })
-      } catch (_) {}
     } catch (e) {
       console.error('Hedy Bridge: Failed to highlight spelling error', e)
     }

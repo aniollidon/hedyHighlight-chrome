@@ -169,6 +169,12 @@ const errors = {
   'hy-not-decimals': {
     message: 'At this level decimals are not yet allowed.',
   },
+  'hy-not-print-decimals': {
+    message: 'Decimals cannot be printed at this level, put quotes around it and it will be text.',
+  },
+  'hy-not-numbers': {
+    message: 'At this level numbers are not yet allowed. Put quotes around it and it will be text.',
+  },
   'hy-else-elif-needs-if': {
     message: "'[NAME]' command expects that 'if' has been used previously.",
   },
@@ -177,6 +183,9 @@ const errors = {
   },
   'hy-identation-not-expected': {
     message: 'The indentation is not correct. Only after a loop or condition should you indent.',
+  },
+  'hy-identation-not-expected-yet': {
+    message: 'There is a space before the line that should not be there. Remove it.',
   },
   'hy-identation-large': {
     message: 'The indentation is too large. Add only [EXPECTED] extra spaces compared to the previous line.',
@@ -306,6 +315,9 @@ const errors = {
   'hy-command-entity-conflict': {
     message:
       "The name '[NAME]' is used by both a command and an entity. Consider renaming the entity to avoid confusion.",
+  },
+  'hy-actions-must-be-in-next-sentence': {
+    message: 'A line break must be made before the action.',
   },
 }
 

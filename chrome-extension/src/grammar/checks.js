@@ -5,8 +5,8 @@ import { hedyCommands, specificHedyErrors, hedyGeneralSyntax, errorMapping } fro
 import { HHError, HHErrorVal, HHErrorVals, HHErrorType, HHErrorLine } from './errors.js'
 import { detectMorpho } from './morphosyntax.js'
 import { validType, compareTypes, detectTypeConstant } from './types.js'
+import * as def from './definitions/definitions.js'
 
-// No hi ha ni elif, ni and ni or (LEVS 5,6,7,8)
 const condicionalInlineRegex = /^(if +([\p{L}_\d]+) *( is | in |=| not +in ) *(".*"|[\p{L}_\d]+) |else )+(.*)$/u
 const condicionalElseInlineRegex = /(.* )(else) (.*)/
 const bucleInlineRegex = /^(repeat +([\p{L}_\d]+) +times +)(.*)$/u
@@ -17,18 +17,18 @@ class CheckHedy {
     this.entities = new EntityDefinitions(level)
     this.commandsSyntax = new hedyCommands(level)
     this.level = level
-    this._usesCometesText = level > 3
-    this._defineVarOp = level >= 6 ? 'is|=' : 'is'
-    this._conditionalInline = level >= 5 && level < 8
-    this._usesScope = level >= 8
-    this._scopeRecursive = level >= 9
-    this._bucleInline = level == 7
-    this._usesCometesArreu = level >= 12
-    this._decimals = level >= 12
-    this._atrandom = level >= 3 && level <= 15
-    this._booleans = level >= 15
-    this._range = level >= 11
-    this._functions = level >= 12
+    this._usesCometesText = def.COMETES_TEXTOS.at(level)
+    this._defineVarOp = def.CMD_EQUAL.at(level) ? 'is|=' : 'is'
+    this._conditionalInline = def.CONDITIONAL_INLINE.at(level)
+    this._usesScope = def.USES_SCOPE.at(level)
+    this._scopeRecursive = def.SCOPE_RECURSIVE.at(level)
+    this._bucleInline = def.LOOP_INLINE.at(level)
+    this._usesCometesArreu = def.COMETES_ARREU.at(level)
+    this._decimals = def.DECIMALS.at(level)
+    this._atrandom = def.CMD_ATRANDOM.at(level)
+    this._booleans = def.BOOLEANS.at(level)
+    this._range = def.CMD_RANGETO.at(level)
+    this._functions = def.FUNCIONS.at(level)
     let beforeDef = '^'
     if (this._bucleInline) beforeDef = '(?:^|\\btimes\\b)'
 
@@ -39,7 +39,6 @@ class CheckHedy {
     const identationLength = identation(line)
     const lineTrim = line.trim()
     if (lineTrim === '') return []
-    this.entities.analizeLine(line, lineNumber)
     const errors = this._analysePhrase(lineTrim, identationLength, lineNumber)
     return this._processErrors(errors, line, lineNumber)
   }
@@ -153,7 +152,7 @@ class CheckHedy {
     errors = this._searchNotUsed(sintagma)
     if (errors.length > 0) errorsFound.push(...errors)
 
-    //console.log('línia ' + (lineNumber + 1) + ':', sintagma)
+    console.log('línia ' + (lineNumber + 1) + ':', sintagma)
 
     return errorsFound
   }
@@ -257,6 +256,7 @@ class CheckHedy {
 
     if (words.length === 0) return []
 
+    this.entities.analizeLine(lineTrim, lineNumber, identationLength)
     words = this._tagCommands(words)
 
     // Tagging entities and constants
@@ -508,8 +508,13 @@ class CheckHedy {
         if (rule.levelStart && rule.levelStart > this.level) continue
         if (rule.levelEnd && rule.levelEnd < this.level) continue
         if (rule.positionInSintagma !== undefined && rule.positionInSintagma !== k) continue
+        if (rule.subpartial !== undefined && rule.subpartial !== sintagma.partialnum) continue
         if (rule.subphrase !== undefined && rule.subphrase !== sintagma.subsintagmanum) continue
         if (rule.refused && !validType(word.tag, rule.refused)) continue
+        if (rule.identationFound !== undefined && rule.identationFound === true && sintagma.identation === 0) continue
+        if (rule.identationFound !== undefined && rule.identationFound === false && sintagma.identation > 0) {
+          continue
+        }
         if (rule.allowed && validType(word.tag, rule.allowed)) {
           sintagma.markUsed(k)
           continue
@@ -518,6 +523,9 @@ class CheckHedy {
         if (rule.highlight === 'line') {
           start = sintagma.sintagmaStart()
           end = sintagma.sintagmaEnd()
+        } else if (rule.highlight === 'identation') {
+          start = sintagma.sintagmaStart() - sintagma.identation
+          end = sintagma.sintagmaStart()
         }
 
         errorsFound.push(new HHErrorType(word.text, rule.codeerror, start, end, word.tag))

@@ -76,10 +76,10 @@ export class SpellCheckManager {
     // Emit known errors immediately
     const immediate = this._errorsFromDict(tokens)
     try {
-      console.log(
-        '[SpellMgr] emit known errors',
-        immediate.map(e => ({ line: e.line, start: e.start, end: e.end })),
-      )
+      // console.log(
+      //   '[SpellMgr] emit known errors',
+      //   immediate.map(e => ({ line: e.line, start: e.start, end: e.end })),
+      // )
     } catch (_) {}
     this.post({ type: 'HEDY_SPELL_ERRORS', errors: immediate }, '*')
 
@@ -90,7 +90,7 @@ export class SpellCheckManager {
     const scheduleLater = !shouldCallNow
 
     const trigger = () => {
-      console.log('[SpellMgr] triggering API check')
+      // console.log('[SpellMgr] triggering API check')
       this._runApiCheck(this.currentTokens)
     }
     if (shouldCallNow) {
@@ -115,15 +115,15 @@ export class SpellCheckManager {
     if (!this.enabled) return
     this.lastApiTime = Date.now()
     try {
-      console.log('[SpellMgr] API call start', { count: tokens.length, language: this.language })
+      // console.log('[SpellMgr] API call start', { count: tokens.length, language: this.language })
     } catch (_) {}
     try {
       const errors = await checkSpelling(tokens, this.language)
       try {
-        console.log(
-          '[SpellMgr] API response errors',
-          errors.map(e => ({ line: e.line, start: e.start, end: e.end })),
-        )
+        // console.log(
+        //   '[SpellMgr] API response errors',
+        //   errors.map(e => ({ line: e.line, start: e.start, end: e.end })),
+        // )
       } catch (_) {}
       // Update dictionary with new misspellings
       for (const err of errors) {
@@ -154,7 +154,7 @@ export class SpellCheckManager {
       // Emit server-provided errors after dictionary update
       this.post({ type: 'HEDY_SPELL_ERRORS', errors }, '*')
       try {
-        console.log('[SpellMgr] emit server errors', errors.length)
+        // console.log('[SpellMgr] emit server errors', errors.length)
       } catch (_) {}
     } catch (e) {
       console.error('SpellCheckManager: API error', e)
@@ -162,7 +162,7 @@ export class SpellCheckManager {
       const fallback = this._errorsFromDict(this.currentTokens)
       this.post({ type: 'HEDY_SPELL_ERRORS', errors: fallback }, '*')
       try {
-        console.log('[SpellMgr] emit fallback errors', fallback.length)
+        // console.log('[SpellMgr] emit fallback errors', fallback.length)
       } catch (_) {}
     }
   }
