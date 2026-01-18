@@ -10,6 +10,7 @@
     + positionInSintagma: Comprova a la posició de la paraula en el sintagma (default = NO CHECK)
     + special_orAllowed: Afegeix les definicions a la llista de permesos, [no són una paraula]  (default = NO CHECK)
     + identationFound: Indica si s'ha d'aplicar la regla només si hi ha identació (true) o no (false) (default = NO CHECK)
+    + parentTag: Tag del sintagma pare on s'ha d'aplicar la regla (default = NO CHECK)
   */
 
 import * as def from './definitions.js'
@@ -45,13 +46,39 @@ const hedyGeneralSyntax = [
   },
 
   {
-    subpartial: 1,
+    subpartial: { after: 0 },
+    positionInSintagma: 0,
+    subphrase: 0,
     levelStart: def.CONDITIONAL_INLINE_WARN.start,
     codeerror: 'hy-actions-must-be-in-next-sentence',
+    parentTag: 'condition',
+    highlight: 'previous-char',
+  },
+
+  {
+    subpartial: { after: 0 },
+    subphrase: 0,
+    positionInSintagma: 0,
+    levelStart: def.LOOP_INLINE_WARN.start,
+    codeerror: 'hy-actions-must-be-in-next-sentence',
+    parentTag: 'loop',
+    highlight: 'previous-char',
+  },
+  {
+    subpartial: 0,
+    subphrase: 0,
+    positionInSintagma: 0,
+    levelStart: def.LOOP_INLINE.start,
+    levelEnd: def.LOOP_INLINE.end,
+    parentTag: 'loop',
+    highlight: 'previous-char',
+    codeerror: 'hy-actions-must-be-in-same-sentence',
   },
 
   {
     subpartial: 0,
+    subphrase: 0,
+    positionInSintagma: 0,
     subphrase: 0,
     identationFound: true,
     levelEnd: def.USES_SCOPE.before(),

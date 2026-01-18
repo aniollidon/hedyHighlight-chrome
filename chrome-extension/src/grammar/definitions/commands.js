@@ -70,6 +70,11 @@ const printAskTemplate = {
       codeerror: 'hy-cant-print-function',
     },
     {
+      refused: ['constant_string_quoted'],
+      levelEnd: def.COMETES_TEXTOS.before(),
+      codeerror: 'hy-unnecessary-quotes',
+    },
+    {
       levelStart: def.COMETES_TEXTOS.start,
       refused: ['constant_string_unquoted'],
       codeerror: 'hy-text-must-be-quoted',
@@ -285,7 +290,7 @@ const commandDefinition = [
         codeerror: 'hy-execting-number-string',
       },
       {
-        levelEnd: def.COMETES_ARREU.start,
+        levelStart: def.COMETES_ARREU.start,
         allowed: ['$number', '$quoted', '$boolean'],
         codeerror: 'hy-execting-number-string',
       },
@@ -360,6 +365,11 @@ const commandDefinition = [
       {
         allowed: ['constant'],
         codeerror: 'hy-list-definition-types',
+      },
+      {
+        levelEnd: def.COMETES_ARREU.before(),
+        refused: ['constant_string_quoted'],
+        codeerror: 'hy-unnecessary-quotes',
       },
     ],
   },

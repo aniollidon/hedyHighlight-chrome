@@ -43,13 +43,13 @@ const errors = {
     message: 'Les línies han de començar amb una comanda o una definició.',
   },
   'hy-text-must-be-quoted': {
-    message: "Aquest text hauria d'anar entre cometes.",
+    message: "Aquest text hauria d'anar entre cometes. Potser és una variable mal definida?",
   },
   'hy-recomended-equalequal': {
     message: "En aquest nivell ja es pot fer servir '==' enlloc de '[NAME]'.",
   },
   'hy-entity-changes-content-type': {
-    message: "Vigila que la variable '[NAME]' ha canviat el tipus a respecte la seva definició a la línia [LINE].",
+    message: "Vigila que la variable '[NAME]' ha canviat el tipus a respecte la seva definició a la línia [LINEDEF].",
   },
   'hy-at-begining': {
     message: "La comanda '[NAME]' ha d'anar al començament.",
@@ -93,7 +93,7 @@ const errors = {
   },
   'hy-entity-out-of-scope': {
     message:
-      "La variable '[NAME]' s'està usant fora del seu bloc d'identació i pot no existir. La variable s'ha definit a la línia [LINE] que és fora del bloc actual.",
+      "La variable '[NAME]' s'està usant fora del seu bloc d'identació i pot no existir. La variable s'ha definit a la línia [LINEDEF] que és fora del bloc actual.",
   },
   'hy-always-false': {
     message: 'La condició sempre és falsa i mai es compleix.',
@@ -321,6 +321,12 @@ const errors = {
   },
   'hy-actions-must-be-in-next-sentence': {
     message: "És molt recomanable fer un salt de línia abans de l'acció.",
+  },
+  'hy-actions-must-be-in-same-sentence': {
+    message: "L'acció ha d'estar en la mateixa frase que el bucle o condició. No pot haver-hi un salt de línia.",
+  },
+  'hy-entity-not-used': {
+    message: "La [TYPE] '[NAME]' s'ha definit però no s'està fent servir enlloc.",
   },
 }
 

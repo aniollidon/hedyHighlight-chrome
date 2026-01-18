@@ -103,12 +103,18 @@ export function validType(tag, list) {
 export function enUnaLlista(words, id_word) {
   // Estarà en una llista si hi ha una comanda de llista abans o després
 
-  // Llista HEDY:  llista is|= bla, bla, bla
+  // Llista HEDY:  llista is|= bla, bla, bla blu
   // Llista Python: llista = [bla, bla, bla]
-  // abans o després hi ha ','
+  // abans o després hi ha ',' sense comandes
 
-  if (id_word > 0 && ['comma_list', 'comma_bracedlist'].includes(words[id_word - 1].command)) return true
-  if (id_word + 1 < words.length && ['comma_list', 'comma_bracedlist'].includes(words[id_word + 1].command)) return true
+  for (let i = id_word - 1; i >= 0; i--) {
+    if (['comma_list', 'comma_bracedlist'].includes(words[i].command)) return true
+    if (words[i].command) break
+  }
+  for (let i = id_word + 1; i < words.length; i++) {
+    if (['comma_list', 'comma_bracedlist'].includes(words[i].command)) return true
+    if (words[i].command) break
+  }
 
   return false
 }

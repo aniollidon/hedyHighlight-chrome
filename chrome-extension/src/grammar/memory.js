@@ -1,9 +1,11 @@
 import { Sintagma } from './sintagma.js'
+import * as def from './definitions/definitions.js'
 
 class Memory {
-  constructor() {
+  constructor(level) {
     this.past = []
     this._partialcount = 0
+    this._hasScopes = def.USES_SCOPE.at(level)
     this._definedScopeIdentation = -1 //Nombre de caràcters definits per a identar
     this._scopes = [0]
   }
@@ -14,14 +16,42 @@ class Memory {
    */
   newSintagma(words, identation, lineNumber) {
     let sintagmaTag = 'action'
+    let parentTag = undefined
     if (words[0].command === 'if' || words[0].command === 'elif') sintagmaTag = 'condition'
-    else if (words[0].command === 'else') sintagmaTag = 'not_condition'
+    else if (words[0].command === 'else') sintagmaTag = 'condition_else'
     else if (words[0].command === 'repeat' || words[0].command === 'for' || words[0].command === 'while')
-      sintagmaTag = 'bucle'
+      sintagmaTag = 'loop'
     else if (words[0].command === 'define') sintagmaTag = 'function_definition'
 
-    if (this.last() !== undefined && this.last().linenum === lineNumber) this._partialcount++
-    else this._partialcount = 0
+    if (this.last() !== undefined && this.last().linenum === lineNumber) {
+      this._partialcount++
+      parentTag = this.last().sintagmaTag // Manté el tag del primer sintagma de la línia
+    } else {
+      this._partialcount = 0
+    }
+
+    if (!this._hasScopes) {
+      // Etiqueta el parentTag d'una condició/bucle si la línia anterior ho era
+      if (
+        this.last() !== undefined &&
+        (this.last().sintagmaTag.startsWith('condition') || this.last().sintagmaTag === 'loop')
+      ) {
+        parentTag = this.last().sintagmaTag
+      }
+    } else {
+      // Etiqueta el parentTag d'una condició/bucle si l'identació anterior menor ho era
+      for (let i = this.past.length - 1; i >= 0; i--) {
+        const sintagmaPast = this.past[i]
+        // Si trobem una identació igual o major -> ignorem
+        // Si trobem una identació menor -> és el parent. Usem i sortim
+        if (sintagmaPast.identation < identation) {
+          if (sintagmaPast.sintagmaTag.startsWith('condition') || sintagmaPast.sintagmaTag === 'loop') {
+            parentTag = sintagmaPast.sintagmaTag
+          }
+          break
+        }
+      }
+    }
 
     if (identation > 0 && this._definedScopeIdentation === -1) this._definedScopeIdentation = identation // Defineix la identació dels scopes
 
@@ -34,7 +64,7 @@ class Memory {
       }
     }
 
-    const sintagma = new Sintagma(lineNumber, this._partialcount, 0, words, identation, sintagmaTag)
+    const sintagma = new Sintagma(lineNumber, this._partialcount, 0, words, identation, sintagmaTag, parentTag)
     this.past.push(sintagma)
     return sintagma
   }
@@ -51,7 +81,7 @@ class Memory {
     // Comprova que tots els scopes estiguin tancats
     const tagPast = this.last() !== undefined ? this.last().sintagmaTag : 'action'
     const pastIdentable =
-      tagPast === 'condition' || tagPast === 'not_condition' || tagPast === 'bucle' || tagPast === 'function_definition'
+      tagPast === 'condition' || tagPast === 'condition_else' || tagPast === 'loop' || tagPast === 'function_definition'
 
     if (pastIdentable) return 'expected'
     return true
@@ -66,7 +96,7 @@ class Memory {
 
       if (searchScoped && sintagma.identation !== onScope) continue
       if (sintagma.sintagmaTag === 'condition') return true
-      if (sintagma.sintagmaTag === 'not_condition') return false
+      if (sintagma.sintagmaTag === 'condition_else') return false
       if (sintagma.sintagmaTag === 'action') countActions++
       if (countActions >= 2) return false
     }
@@ -78,13 +108,13 @@ class Memory {
   }
 
   comprovaScope(identation) {
-    // Hi ha d'haver una condition//not_condition o un bucle a l'scope anterior
+    // Hi ha d'haver una condition//condition_else o un bucle a l'scope anterior
     // La separació entre scopes es manté
 
     const identPast = this.last() !== undefined ? this.last().identation : 0
     const tagPast = this.last() !== undefined ? this.last().sintagmaTag : 'action'
     const pastIdentable =
-      tagPast === 'condition' || tagPast === 'not_condition' || tagPast === 'bucle' || tagPast === 'function_definition'
+      tagPast === 'condition' || tagPast === 'condition_else' || tagPast === 'loop' || tagPast === 'function_definition'
 
     // L'identació ha de ser múltiple de la definida
     if (identation > 0 && this._definedScopeIdentation !== -1 && identation % this._definedScopeIdentation !== 0)

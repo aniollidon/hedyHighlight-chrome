@@ -1,11 +1,12 @@
 export class Sintagma {
-  constructor(linenum, partialnum, subsintagmanum, words, identation, sintagmaTag) {
+  constructor(linenum, partialnum, subsintagmanum, words, identation, sintagmaTag, parentTag = undefined) {
     this.linenum = linenum // Línia on es troba el sintagma
     this.partialnum = partialnum // Un subparcial és la posició del sintagma consecutiu en una frase (ex: condició[0]->acció[1])
     this.subsintagmanum = subsintagmanum // Un subsintagma és la posició d'una unitat dins un sintagma (ex: operació[1] dins una expressió[0])
     this.words = words
     this.identation = identation
     this.sintagmaTag = sintagmaTag
+    this.parentTag = parentTag
 
     // Crea subsintagmes
     Sintagma.subphrasesCount = 1
@@ -19,6 +20,7 @@ export class Sintagma {
           word.subphrase,
           identation,
           'subphrase',
+          sintagmaTag, // Manté el tag del sintagma pare
         )
         Sintagma.subphrasesCount++
       }

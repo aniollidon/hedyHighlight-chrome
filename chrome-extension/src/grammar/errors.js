@@ -20,6 +20,7 @@ const severityAndPriority = {
   'hy-function-unexpected-argument': { severity: 'error', priority: 3 },
   'hy-command-missing-argument-comma': { severity: 'error', priority: 4 },
   'hy-ask-not-in-definition': { severity: 'error', priority: 4 },
+  'hy-entity-not-used': { severity: 'warning', priority: 4 },
   'hy-text-must-be-quoted': { severity: 'error', priority: 4 },
   'hy-command-context': { severity: 'error', priority: 5 },
   'hy-refused-function-void': { severity: 'error', priority: 5 },
@@ -75,6 +76,7 @@ const severityAndPriority = {
   'hy-bad-definition-for-is': { severity: 'error', priority: 100 },
   'hy-function-argument-duplicated': { severity: 'warning', priority: 100 },
   'hy-actions-must-be-in-next-sentence': { severity: 'warning', priority: 100 },
+  'hy-actions-must-be-in-same-sentence': { severity: 'error', priority: 100 },
   'hy-not-print-decimals': { severity: 'error', priority: 100 },
   'hy-not-decimals': { severity: 'error', priority: 100 },
   'hy-not-numbers': { severity: 'error', priority: 101 },
@@ -97,11 +99,12 @@ const severityAndPriority = {
 }
 
 class HHError {
-  constructor(onText, errorCode, start, end) {
+  constructor(onText, errorCode, start, end, line) {
     this.onText = onText
     this.errorCode = errorCode
     this.start = start
     this.end = end
+    this.line = line
     this.set(errorCode)
   }
 
@@ -121,6 +124,8 @@ class HHError {
   _process_messsage(message) {
     message = message.replace('[NAME]', this.onText)
     message = message.replace('[LOWER]', this.onText.toLowerCase())
+    message = message.replace('[LINE]', this.line + 1)
+
     return message
   }
 
@@ -136,8 +141,8 @@ class HHError {
 }
 
 class HHErrorVal extends HHError {
-  constructor(onText, errorCode, start, end, value) {
-    super(onText, errorCode, start, end)
+  constructor(onText, errorCode, start, end, line, value) {
+    super(onText, errorCode, start, end, line)
     this.value = value
   }
 
@@ -156,8 +161,8 @@ class HHErrorVal extends HHError {
 }
 
 class HHErrorVals extends HHError {
-  constructor(onText, errorCode, start, end, values) {
-    super(onText, errorCode, start, end)
+  constructor(onText, errorCode, start, end, line, values) {
+    super(onText, errorCode, start, end, line)
     this.values = values
   }
 
@@ -170,8 +175,8 @@ class HHErrorVals extends HHError {
   }
 }
 class HHErrorType extends HHError {
-  constructor(onText, errorCode, start, end, type) {
-    super(onText, errorCode, start, end)
+  constructor(onText, errorCode, start, end, line, type) {
+    super(onText, errorCode, start, end, line)
     this.type = type
   }
 
@@ -183,17 +188,17 @@ class HHErrorType extends HHError {
   }
 }
 
-class HHErrorLine extends HHError {
-  constructor(onText, errorCode, start, end, lineNumber) {
-    super(onText, errorCode, start, end)
-    this.lineNumber = lineNumber
+class HHErrorLineDef extends HHError {
+  constructor(onText, errorCode, start, end, line, lineDef) {
+    super(onText, errorCode, start, end, line)
+    this.lineDef = lineDef
   }
 
   _process_messsage(message) {
-    message = message.replace('[LINE]', this.lineNumber + 1)
+    message = message.replace('[LINEDEF]', this.lineDef + 1)
     message = super._process_messsage(message)
     return message
   }
 }
 
-export { HHError, HHErrorVal, HHErrorVals, HHErrorType, HHErrorLine }
+export { HHError, HHErrorVal, HHErrorVals, HHErrorType, HHErrorLineDef }

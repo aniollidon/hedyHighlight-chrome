@@ -32,13 +32,6 @@ const specificHedyErrors = [
     codeerror: 'hy-turn-left-right',
   },
   {
-    commands: ['print', 'ask', 'echo'],
-    levelEnd: def.COMETES_TEXTOS.before(),
-    hasAfter: /^(["']).*\1/g,
-    highlight: 'after_word',
-    codeerror: 'hy-unnecessary-quotes',
-  },
-  {
     commands: ['variable_define_is', 'variable_define_equal'],
     whenCommand: 'invalid',
     hasBefore: /[\p{L}_\d] +[\p{L}_\d]/gu,

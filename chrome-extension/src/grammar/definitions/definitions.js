@@ -37,9 +37,11 @@ export const COMETES_TEXTOS = new OnLevel(4)
 export const COMETES_ARREU = new OnLevel(12)
 export const COLON = new OnLevel(13)
 
-export const CONDITIONAL_INLINE = new OnLevel(5)
+export const CONDITIONAL_INLINE = new OnLevel(5, 5)
 export const CONDITIONAL_INLINE_WARN = new OnLevel(6)
 export const LOOP_INLINE = new OnLevel(8, 8)
+export const LOOP_INLINE_WARN = new OnLevel(9)
+
 export const USES_SCOPE = new OnLevel(9)
 export const SCOPE_RECURSIVE = new OnLevel(10)
 

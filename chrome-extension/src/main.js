@@ -123,7 +123,7 @@ export function main() {
             message: e.message || e.getMessage(), // Ensure message is extracted
             start: e.start,
             end: e.end,
-            line: i,
+            line: e.line,
             errorCode: e.errorCode,
             severity: e.severity, // pass severity for coloring
           }))
@@ -157,13 +157,13 @@ export function main() {
     }
 
     try {
-      const finalErrors = hedy.finalCheck()
+      const finalErrors = hedy.finalCheck(lines.length - 1)
       if (finalErrors && finalErrors.length > 0) {
         const plainFinalErrors = finalErrors.map(e => ({
           message: e.message || e.getMessage(),
           start: e.start,
           end: e.end,
-          line: lines.length - 1, // Attach to last line?
+          line: e.line,
           errorCode: e.errorCode,
           severity: e.severity,
         }))

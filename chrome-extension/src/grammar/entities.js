@@ -224,6 +224,25 @@ class EntityDefinitions {
     }
   }
 
+  finalCheck() {
+    // Comprova que totes les definicions tenen ús
+    const unUsed = []
+
+    for (const name in this.names) {
+      const entity = this.names[name]
+      entity.name = name
+
+      // Busca si hi ha algun token d'ús per aquesta entitat
+      const hasUsage = this.tokens.some(token => token.entity === entity && token.modifiers.includes('use'))
+
+      if (!hasUsage) {
+        unUsed.push(entity)
+      }
+    }
+
+    return { unUsed: unUsed }
+  }
+
   getEntities() {
     return this.names
   }

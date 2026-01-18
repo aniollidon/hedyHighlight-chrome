@@ -112,6 +112,3 @@ Es poden imprimir llistes
 
 ## TODO IMPORTANT. A PARTIR DEL 13... falta bastant
 
-## TODO IMPORTANT
-
-- A nivell 8. El repeat ha de ser inline per força. ARA WARNING!!!

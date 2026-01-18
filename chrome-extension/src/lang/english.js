@@ -43,13 +43,13 @@ const errors = {
     message: 'Lines must start with a command or a definition.',
   },
   'hy-text-must-be-quoted': {
-    message: 'This text should be in quotes.',
+    message: 'This text should be in quotes. Maybe it is a misspelled variable?',
   },
   'hy-recomended-equalequal': {
     message: "At this level you can use '==' instead of '[NAME]'.",
   },
   'hy-entity-changes-content-type': {
-    message: "Be careful, variable '[NAME]' has changed its type compared to its definition on line [LINE].",
+    message: "Be careful, variable '[NAME]' has changed its type compared to its definition on line [LINEDEF].",
   },
   'hy-at-begining': {
     message: "'[NAME]' command must be at the beginning.",
@@ -93,7 +93,7 @@ const errors = {
   },
   'hy-entity-out-of-scope': {
     message:
-      "The '[NAME]' variable is being used outside its indentation block and may not exist. The variable was defined on line [LINE], which is outside the current block.",
+      "The '[NAME]' variable is being used outside its indentation block and may not exist. The variable was defined on line [LINEDEF], which is outside the current block.",
   },
   'hy-always-false': {
     message: 'The condition is always false and never satisfied.',
@@ -139,7 +139,7 @@ const errors = {
     message: "A list is expected after '[NAME]'.",
   },
   'hy-before-needs-list': {
-    message: "A list is expected before '[NAME]",
+    message: "A list is expected before '[NAME]'.",
   },
   'hy-after-needs-nolist': {
     message: "Lists are not allowed after '[NAME]'.",
@@ -321,6 +321,12 @@ const errors = {
   },
   'hy-actions-must-be-in-next-sentence': {
     message: 'A line break must be made before the action.',
+  },
+  'hy-actions-must-be-in-same-sentence': {
+    message: 'The action must be in the same sentence as the condition or loop. There cannot be a line break.',
+  },
+  'hy-entity-not-used': {
+    message: "The [TYPE] '[NAME]' has been defined but is not being used anywhere.",
   },
 }
 

@@ -532,11 +532,63 @@ function highlightErrors(errors) {
   })
 }
 
+// Funció auxiliar per calcular rectangle virtual més enllà del text
+function getVirtualRect(lineElement, textLength, virtualStart, virtualEnd) {
+  const lineRect = lineElement.getBoundingClientRect()
+  const computedStyle = window.getComputedStyle(lineElement)
+  const charWidth = parseFloat(computedStyle.fontSize) * 0.6
+
+  // Si la línia és buida, usar el left del lineRect directament
+  let textEndX = lineRect.left
+  if (textLength > 0) {
+    const range = document.createRange()
+    const walker = document.createTreeWalker(lineElement, NodeFilter.SHOW_TEXT, null)
+    let lastNode = null
+    while (walker.nextNode()) {
+      lastNode = walker.currentNode
+    }
+    if (lastNode) {
+      range.setStart(lastNode, lastNode.nodeValue.length)
+      range.setEnd(lastNode, lastNode.nodeValue.length)
+      const rects = range.getClientRects()
+      if (rects.length > 0) {
+        textEndX = rects[0].right
+      }
+    }
+  }
+
+  const extraChars = virtualEnd - virtualStart
+  const virtualStartX = textEndX + (virtualStart - textLength) * charWidth
+  const virtualWidth = Math.max(extraChars * charWidth, charWidth)
+
+  // Assegurar altura mínima (per línies buides que poden tenir height 0)
+  const height =
+    lineRect.height > 0
+      ? lineRect.height
+      : parseFloat(computedStyle.lineHeight) || parseFloat(computedStyle.fontSize) * 1.2
+
+  return {
+    top: lineRect.top,
+    bottom: lineRect.top + height,
+    height: height,
+    left: virtualStartX,
+    right: virtualStartX + virtualWidth,
+    width: virtualWidth,
+  }
+}
+
 function createErrorHighlight(error, lineElement, overlay, editorRect) {
-  const text = lineElement.innerText
-  if (error.start > text.length) error.start = text.length
-  if (error.end > text.length) error.end = text.length
-  if (error.start === 0 && error.end === 0 && text.length > 0) error.end = 1
+  const rawText = lineElement.innerText
+  // Netejar caràcters invisibles (nova línia, zero-width space, etc.)
+  const text = rawText.replace(/[\n\r\u200B\u200C\u200D\uFEFF]/g, '')
+  if (error.start < 0) error.start = 0
+  if (error.end < 0) error.end = 0
+
+  // Si start i end són iguals, ajustar end per tenir almenys un caràcter
+  if (error.start === error.end) {
+    error.end = error.start + 1
+  }
+
   let currentPos = 0
   let startNode = null,
     startOffset = 0
@@ -547,11 +599,11 @@ function createErrorHighlight(error, lineElement, overlay, editorRect) {
       const len = node.nodeValue.length
       if (!startNode && currentPos + len >= error.start) {
         startNode = node
-        startOffset = error.start - currentPos
+        startOffset = Math.min(error.start - currentPos, len)
       }
       if (!endNode && currentPos + len >= error.end) {
         endNode = node
-        endOffset = error.end - currentPos
+        endOffset = Math.min(error.end - currentPos, len)
       }
       currentPos += len
     } else {
@@ -559,23 +611,22 @@ function createErrorHighlight(error, lineElement, overlay, editorRect) {
     }
   }
   traverse(lineElement)
-  if (startNode && endNode) {
+
+  // Obtenir rectangles visibles
+  const visible = []
+  const severity = error.severity || 'error'
+
+  // Part real del text (si n'hi ha)
+  if (startNode && endNode && error.start < text.length) {
     const range = document.createRange()
     try {
       range.setStart(startNode, startOffset)
       range.setEnd(endNode, endOffset)
       const rects = range.getClientRects()
-      if (!rects.length) return
-      const severity = error.severity || 'error'
-      let underlineColor = 'red'
-      if (severity === 'warning') underlineColor = 'orange'
-      else if (severity === 'info') underlineColor = 'dodgerblue'
-      const visible = []
       for (let i = 0; i < rects.length; i++) {
         const r = rects[i]
         if (r.bottom < editorRect.top || r.top > editorRect.bottom) continue
         if (r.right < editorRect.left || r.left > editorRect.right) continue
-        // Clip horizontally to the editor viewport to avoid lateral overflow
         const clipped = {
           top: r.top,
           bottom: r.bottom,
@@ -586,75 +637,91 @@ function createErrorHighlight(error, lineElement, overlay, editorRect) {
         }
         if (clipped.width > 0) visible.push(clipped)
       }
-      if (!visible.length) return
-      const first = visible[0]
-      const last = visible[visible.length - 1]
-      const waveHeight = 4
-      const totalWidth = last.right - first.left
-      const el = document.createElement('div')
-      el.className = 'hedy-error-mark'
-      el.style.position = 'fixed'
-      el.style.top = `${first.top + first.height - (waveHeight - 1)}px`
-      // Ensure the underline container is clipped inside editor horizontally
-      const clippedLeft = Math.max(first.left, editorRect.left)
-      const clippedRight = Math.min(visible[visible.length - 1].right, editorRect.right)
-      const clippedWidth = Math.max(0, Math.round(clippedRight - clippedLeft))
-      el.style.left = `${clippedLeft}px`
-      el.style.width = `${clippedWidth}px`
-      el.style.height = `${waveHeight}px`
-      el.style.pointerEvents = 'none'
-      el.style.background = 'transparent'
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-      svg.setAttribute('width', `${totalWidth}`)
-      svg.setAttribute('height', `${waveHeight}`)
-      svg.setAttribute('viewBox', `0 0 ${totalWidth} ${waveHeight}`)
-      svg.style.display = 'block'
-      svg.style.position = 'absolute'
-      svg.style.top = '0'
-      svg.style.left = '0'
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-      const segment = 5
-      const midline = waveHeight / 2
-      const amp = 1.4
-      let d = ''
-      for (let i = 0; i < visible.length; i++) {
-        const rect = visible[i]
-        const startX = Math.max(rect.left, editorRect.left) - clippedLeft
-        const width = rect.width
-        d += `M${startX} ${midline}`
-        for (let x = 0; x < width; ) {
-          const remaining = width - x
-          const seg = remaining >= segment ? segment : remaining
-          const q1 = startX + x + seg * 0.2
-          const mid = startX + x + seg / 2
-          const q3 = startX + x + seg * 0.8
-          const next = startX + x + seg
-          d += ` Q ${q1} ${midline + amp} ${mid} ${midline}`
-          d += ` Q ${q3} ${midline - amp} ${next} ${midline}`
-          x += seg
-        }
-        highlightRects.push({
-          rect: rect,
-          message: error.message,
-          errorCode: error.errorCode,
-          severity: severity,
-          anchorLeft: first.left,
-          anchorTop: first.top,
-        })
-      }
-      path.setAttribute('d', d)
-      path.setAttribute('fill', 'none')
-      path.setAttribute('stroke', underlineColor)
-      path.setAttribute('stroke-width', '1.15')
-      path.setAttribute('stroke-linejoin', 'round')
-      path.setAttribute('stroke-linecap', 'round')
-      svg.appendChild(path)
-      el.appendChild(svg)
-      overlay.appendChild(el)
     } catch (e) {
       console.error('Hedy Bridge: Failed to get range rects', e)
     }
   }
+
+  // Part virtual més enllà del text (si cal)
+  if (error.end > text.length) {
+    const virtualStart = Math.max(error.start, text.length)
+    const virtualRect = getVirtualRect(lineElement, text.length, virtualStart, error.end)
+    visible.push(virtualRect)
+  }
+
+  if (!visible.length) return
+
+  // Pintar tots els rectangles amb el codi existent
+  const first = visible[0]
+  const last = visible[visible.length - 1]
+  let underlineColor = 'red'
+  if (severity === 'warning') underlineColor = 'orange'
+  else if (severity === 'info') underlineColor = 'dodgerblue'
+  const waveHeight = 4
+  const clippedLeft = first.left
+  const clippedRight = last.right
+  const clippedWidth = Math.max(0, Math.round(clippedRight - clippedLeft))
+  const totalWidth = clippedWidth
+
+  const el = document.createElement('div')
+  el.className = 'hedy-error-mark'
+  el.style.position = 'fixed'
+  el.style.top = `${first.top + first.height - (waveHeight - 1)}px`
+  el.style.left = `${clippedLeft}px`
+  el.style.width = `${clippedWidth}px`
+  el.style.height = `${waveHeight}px`
+  el.style.pointerEvents = 'none'
+  el.style.background = 'transparent'
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('width', `${totalWidth}`)
+  svg.setAttribute('height', `${waveHeight}`)
+  svg.setAttribute('viewBox', `0 0 ${totalWidth} ${waveHeight}`)
+  svg.style.display = 'block'
+  svg.style.position = 'absolute'
+  svg.style.top = '0'
+  svg.style.left = '0'
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  const segment = 5
+  const midline = waveHeight / 2
+  const amp = 1.4
+  let d = ''
+  for (let i = 0; i < visible.length; i++) {
+    const rect = visible[i]
+    const startX = rect.left - clippedLeft
+    const width = rect.width
+    d += `M${startX} ${midline}`
+    for (let x = 0; x < width; ) {
+      const remaining = width - x
+      const seg = remaining >= segment ? segment : remaining
+      const q1 = startX + x + seg * 0.2
+      const mid = startX + x + seg / 2
+      const q3 = startX + x + seg * 0.8
+      const next = startX + x + seg
+      d += ` Q ${q1} ${midline + amp} ${mid} ${midline}`
+      d += ` Q ${q3} ${midline - amp} ${next} ${midline}`
+      x += seg
+    }
+    highlightRects.push({
+      rect: rect,
+      message: error.message,
+      errorCode: error.errorCode,
+      severity: severity,
+      anchorLeft: first.left,
+      anchorTop: first.top,
+    })
+  }
+
+  path.setAttribute('d', d)
+  path.setAttribute('fill', 'none')
+  path.setAttribute('stroke', underlineColor)
+  path.setAttribute('stroke-width', '1.15')
+  path.setAttribute('stroke-linejoin', 'round')
+  path.setAttribute('stroke-linecap', 'round')
+  svg.appendChild(path)
+  el.appendChild(svg)
+  overlay.appendChild(el)
 }
 
 function getTextWidth(text, font) {
@@ -699,9 +766,7 @@ function createSpellingHighlight(error, lineElement, overlay, editorRect) {
   const text = lineElement.innerText
   let start = error.start
   let end = error.end
-  if (start > text.length) start = text.length
-  if (end > text.length) end = text.length
-  if (start === end && text.length > 0) end = start + 1
+  if (start === end) end = start + 1
 
   let currentPos = 0
   let startNode = null
@@ -714,11 +779,11 @@ function createSpellingHighlight(error, lineElement, overlay, editorRect) {
       const len = node.nodeValue.length
       if (!startNode && currentPos + len >= start) {
         startNode = node
-        startOffset = start - currentPos
+        startOffset = Math.min(start - currentPos, len)
       }
       if (!endNode && currentPos + len >= end) {
         endNode = node
-        endOffset = end - currentPos
+        endOffset = Math.min(end - currentPos, len)
       }
       currentPos += len
     } else {
@@ -728,20 +793,26 @@ function createSpellingHighlight(error, lineElement, overlay, editorRect) {
 
   traverse(lineElement)
 
-  if (startNode && endNode) {
+  const suggestions = Array.isArray(error.suggestions)
+    ? error.suggestions
+    : Array.isArray(error.replacements)
+      ? error.replacements.map(r => (typeof r === 'string' ? r : r && r.value)).filter(Boolean)
+      : []
+
+  // Obtenir rectangles visibles
+  const visible = []
+
+  // Part real del text (si n'hi ha)
+  if (startNode && endNode && start < text.length) {
     const range = document.createRange()
     try {
       range.setStart(startNode, startOffset)
       range.setEnd(endNode, endOffset)
       const rects = range.getClientRects()
-      if (!rects.length) return
-
-      const visible = []
       for (let i = 0; i < rects.length; i++) {
         const r = rects[i]
         if (r.bottom < editorRect.top || r.top > editorRect.bottom) continue
         if (r.right < editorRect.left || r.left > editorRect.right) continue
-        // Clip horizontally to the editor viewport
         const clipped = {
           top: r.top,
           bottom: r.bottom,
@@ -752,85 +823,89 @@ function createSpellingHighlight(error, lineElement, overlay, editorRect) {
         }
         if (clipped.width > 0) visible.push(clipped)
       }
-      if (!visible.length) return
-
-      const first = visible[0]
-      const waveHeight = 3
-      const totalWidth = visible[visible.length - 1].right - first.left
-
-      const el = document.createElement('div')
-      el.style.position = 'fixed'
-      el.style.top = `${first.top + first.height - (waveHeight - 1)}px`
-      // Ensure underline stays within editor viewport horizontally
-      const clippedLeft = Math.max(first.left, editorRect.left)
-      const clippedRight = Math.min(visible[visible.length - 1].right, editorRect.right)
-      const clippedWidth = Math.max(0, Math.round(clippedRight - clippedLeft))
-      el.style.left = `${clippedLeft}px`
-      el.style.width = `${clippedWidth}px`
-      el.style.height = `${waveHeight}px`
-      el.style.pointerEvents = 'none'
-      el.style.background = 'transparent'
-
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-      svg.setAttribute('width', `${totalWidth}`)
-      svg.setAttribute('height', `${waveHeight}`)
-      svg.setAttribute('viewBox', `0 0 ${totalWidth} ${waveHeight}`)
-      svg.style.display = 'block'
-      svg.style.position = 'absolute'
-      svg.style.top = '0'
-      svg.style.left = '0'
-
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-      const segment = 4
-      const midline = waveHeight / 2
-      const amp = 1.0
-      let d = ''
-
-      for (let i = 0; i < visible.length; i++) {
-        const rect = visible[i]
-        const startX = Math.max(rect.left, editorRect.left) - clippedLeft
-        const width = rect.width
-        d += `M${startX} ${midline}`
-        for (let x = 0; x < width; ) {
-          const remaining = width - x
-          const seg = remaining >= segment ? segment : remaining
-          const q1 = startX + x + seg * 0.2
-          const mid = startX + x + seg / 2
-          const q3 = startX + x + seg * 0.8
-          const next = startX + x + seg
-          d += ` Q ${q1} ${midline + amp} ${mid} ${midline}`
-          d += ` Q ${q3} ${midline - amp} ${next} ${midline}`
-          x += seg
-        }
-        const suggestions = Array.isArray(error.suggestions)
-          ? error.suggestions
-          : Array.isArray(error.replacements)
-          ? error.replacements.map(r => (typeof r === 'string' ? r : r && r.value)).filter(Boolean)
-          : []
-        spellingHighlightRects.push({
-          rect: rect,
-          message: error.message,
-          suggestions: suggestions,
-          line: error.line,
-          start: error.start,
-          end: error.end,
-        })
-      }
-
-      path.setAttribute('d', d)
-      path.setAttribute('fill', 'none')
-      path.setAttribute('stroke', '#0a9d0a')
-      path.setAttribute('stroke-width', '1.15')
-      path.setAttribute('stroke-linejoin', 'round')
-      path.setAttribute('stroke-linecap', 'round')
-
-      svg.appendChild(path)
-      el.appendChild(svg)
-      overlay.appendChild(el)
     } catch (e) {
-      console.error('Hedy Bridge: Failed to highlight spelling error', e)
+      console.error('Hedy Bridge: Failed to get range rects', e)
     }
   }
+
+  // Part virtual més enllà del text (si cal)
+  if (end > text.length) {
+    const virtualStart = Math.max(start, text.length)
+    const virtualRect = getVirtualRect(lineElement, text.length, virtualStart, end)
+    visible.push(virtualRect)
+  }
+
+  if (!visible.length) return
+
+  // Pintar tots els rectangles
+  const first = visible[0]
+  const last = visible[visible.length - 1]
+  const waveHeight = 3
+  const clippedLeft = first.left
+  const clippedRight = last.right
+  const clippedWidth = Math.max(0, Math.round(clippedRight - clippedLeft))
+  const totalWidth = clippedWidth
+
+  const el = document.createElement('div')
+  el.style.position = 'fixed'
+  el.style.top = `${first.top + first.height - (waveHeight - 1)}px`
+  el.style.left = `${clippedLeft}px`
+  el.style.width = `${clippedWidth}px`
+  el.style.height = `${waveHeight}px`
+  el.style.pointerEvents = 'none'
+  el.style.background = 'transparent'
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('width', `${totalWidth}`)
+  svg.setAttribute('height', `${waveHeight}`)
+  svg.setAttribute('viewBox', `0 0 ${totalWidth} ${waveHeight}`)
+  svg.style.display = 'block'
+  svg.style.position = 'absolute'
+  svg.style.top = '0'
+  svg.style.left = '0'
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  const segment = 4
+  const midline = waveHeight / 2
+  const amp = 1.0
+  let d = ''
+
+  for (let i = 0; i < visible.length; i++) {
+    const rect = visible[i]
+    const startX = rect.left - clippedLeft
+    const width = rect.width
+    d += `M${startX} ${midline}`
+    for (let x = 0; x < width; ) {
+      const remaining = width - x
+      const seg = remaining >= segment ? segment : remaining
+      const q1 = startX + x + seg * 0.2
+      const mid = startX + x + seg / 2
+      const q3 = startX + x + seg * 0.8
+      const next = startX + x + seg
+      d += ` Q ${q1} ${midline + amp} ${mid} ${midline}`
+      d += ` Q ${q3} ${midline - amp} ${next} ${midline}`
+      x += seg
+    }
+    spellingHighlightRects.push({
+      rect: rect,
+      message: error.message,
+      suggestions: suggestions,
+      line: error.line,
+      start: error.start,
+      end: error.end,
+    })
+  }
+
+  path.setAttribute('d', d)
+  path.setAttribute('fill', 'none')
+  path.setAttribute('stroke', '#0a9d0a')
+  path.setAttribute('stroke-width', '1.15')
+  path.setAttribute('stroke-linejoin', 'round')
+  path.setAttribute('stroke-linecap', 'round')
+
+  svg.appendChild(path)
+  el.appendChild(svg)
+  overlay.appendChild(el)
 }
 
 function replaceSpellingError(errorItem, suggestion) {
