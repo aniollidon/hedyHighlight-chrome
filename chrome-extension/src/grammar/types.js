@@ -100,46 +100,37 @@ export function validType(tag, list) {
   return false
 }
 
-export function varDefinitionType(linetext, hasQuotes, hasBooleans, define_var_operator, entities) {
-  const isList = enUnaLlista(linetext, linetext.length - 1, hasQuotes, define_var_operator)
-  if (isList) return 'list'
-  const despresIgual = define_var_operator.includes('=') ? linetext.indexOf('=') + 1 : -1
-  const despresIs = define_var_operator.includes('is') ? linetext.indexOf(' is ') + 4 : -1
-  const pos = despresIgual > despresIs ? despresIgual : despresIs
-  const despres = linetext.substring(pos, linetext.length).trim()
+export function enUnaLlista(words, id_word) {
+  // Estarà en una llista si hi ha una comanda de llista abans o després
 
-  if (despres.match(/\+|-|\*|\//)) return 'value_mixed'
-  if (entities[despres.trim()]) {
-    return entities[despres.trim()].subtype || 'value_mixed'
-  }
-  if (despres.match(/^ *ask /)) return 'value_mixed'
-  if (despres.match(/at random/)) return 'value_mixed'
-  if (despres.match(/^ *call /)) return 'value_mixed'
+  // Llista HEDY:  llista is|= bla, bla, bla
+  // Llista Python: llista = [bla, bla, bla]
+  // abans o després hi ha ','
 
-  return 'value_' + detectTypeConstant(despres, true, hasBooleans)
+  if (id_word > 0 && ['comma_list', 'comma_bracedlist'].includes(words[id_word - 1].command)) return true
+  if (id_word + 1 < words.length && ['comma_list', 'comma_bracedlist'].includes(words[id_word + 1].command)) return true
+
+  return false
 }
 
-export function enUnaLlista(text, pos, hasQuotes, define_var_operator) {
-  const abans = text.substring(0, pos)
-  const despres = text.substring(pos)
+/*  Detecta el tipus en una definició de variable.
+    S'espera tenir etiquetades les comandes.
+ */
+export function getDefinitionType(wordsAfterDef, entities, hasBooleans = true) {
+  if (enUnaLlista(wordsAfterDef, wordsAfterDef.length - 1)) return 'list'
 
-  const conteWith = text.indexOf('with')
-  const conteCall = text.indexOf('call')
-  let abansComa = abans.lastIndexOf(',')
-  let abansClaudator = Boolean(abans.match(/(is +|= *)\[/))
-  let abansIgual = define_var_operator.includes('=') ? abans.lastIndexOf('=') : -1
-  let abansIs = define_var_operator.includes('is') ? abans.lastIndexOf(' is ') : -1
-
-  let despresComa = despres.indexOf(',')
-
-  if (hasQuotes) {
-    if (abansComa !== -1 && entreCometes(abans, abansComa)) abansComa = -1
-    if (abansIgual !== -1 && entreCometes(abans, abansIgual)) abansIgual = -1
-    if (abansIs !== -1 && entreCometes(abans, abansIs)) abansIs = -1
-    if (despresComa !== -1 && entreCometes(despres, despresComa)) despresComa = -1
-    if (conteWith !== -1 && !entreCometes(text, conteWith) && conteCall !== -1 && !entreCometes(text, conteCall))
-      return false
+  for (let i = 0; i < wordsAfterDef.length; i++) {
+    // TODO: Pot millorar amb les operacions...
+    if (wordsAfterDef[i].command) return 'value_mixed'
   }
 
-  return (abansComa > 0 || despresComa > 0 || abansClaudator) && (abansIgual > 0 || abansIs > 0)
+  const despres = wordsAfterDef
+    .map(w => w.text)
+    .join(' ')
+    .trim()
+
+  if (entities && entities[despres]) {
+    return entities[despres].subtype || 'value_mixed'
+  }
+  return 'value_' + detectTypeConstant(despres, true, hasBooleans)
 }

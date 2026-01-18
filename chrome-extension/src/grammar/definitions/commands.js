@@ -623,6 +623,13 @@ const commandDefinition = [
     levelEnd: def.FUNCTIONS_DEFINE_CALL.end,
     atBegining: false,
     usesParameters: true,
+    minArgumentsAfter: 1,
+    arguments: [
+      {
+        allowed: ['entity_function'],
+        codeerror: 'hy-execting-function-call',
+      },
+    ],
   },
   {
     text: 'with',

@@ -47,6 +47,7 @@ const severityAndPriority = {
   'hy-bracket-needs-before-list': { severity: 'warning', priority: 10 },
   'hy-use-elseif-instead': { severity: 'warning', priority: 10 },
   'hy-execting-function-definition': { severity: 'error', priority: 10 },
+  'hy-execting-function-call': { severity: 'error', priority: 10 },
   'hy-comma-list-needs-brackets': { severity: 'error', priority: 10 },
   'hy-access-brackets-format-arguments': { severity: 'error', priority: 11 },
   'hy-execting-parameter': { severity: 'error', priority: 11 },

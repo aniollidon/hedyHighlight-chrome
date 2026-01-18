@@ -108,6 +108,10 @@ Es poden imprimir llistes
 - Sense sagnat recomana if/else amb enter. ✔️
 - Sense sagnat no hi pot haver sagnat ✔️
 - No és error definir un apostrof en un unquoted string `premis is 1 d'això, dallo`
-- Warnings a les variables no usades
-- Els números només estan prohibits a les mates
-- les variables que contenen booleans no es poden imprimr
+- les variables que contenen booleans no es poden imprimr ✔️
+
+## TODO IMPORTANT. A PARTIR DEL 13... falta bastant
+
+## TODO IMPORTANT
+
+- A nivell 8. El repeat ha de ser inline per força. ARA WARNING!!!

@@ -1,31 +1,12 @@
-import { entreCometes } from '../utils.js'
-import { enUnaLlista, varDefinitionType } from './types.js'
 import * as def from './definitions/definitions.js'
-
-function parseImportFunctions(input) {
-  input = input.replace(/[^a-zA-Z0-9,_()]/g, '') // Elimina tots els caràcters que no siguin lletres, números, comes i parèntesis
-  const regex = /([\p{L}_\d]+) *(?:\(([^)]*)\))?/gu
-  const result = []
-  let match
-
-  while ((match = regex.exec(input)) !== null) {
-    const name = match[1] // Nom de la funció
-    const args = match[2] ? match[2].split(',').map(arg => arg.trim()) : [] // Arguments, si n'hi ha
-    result.push({ name, args })
-  }
-
-  return result
-}
+import { enUnaLlista, getDefinitionType } from './types.js'
 
 class EntityDefinitions {
   constructor(level) {
     this._level = level
-    this._hasQuotes = def.COMETES_TEXTOS.at(level)
     this._hasNumbers = def.NUMBERS.at(level)
     this._hasBooleans = def.BOOLEANS.at(level)
     this._hasScopes = def.USES_SCOPE.at(level)
-    this._define_var_operator = def.CMD_EQUAL.at(level) ? 'is|=' : 'is'
-    this._define_var_inline_bucle = def.LOOP_INLINE.at(level)
     this._define_var_by_for = def.CMD_FOR.at(level)
     this._define_functions = def.FUNCIONS.at(level)
     this._define_fun_with = def.FUNCTIONS_WITH.at(level)
@@ -69,16 +50,18 @@ class EntityDefinitions {
     }
   }
 
-  analizeLine(text, lineNumber, identation = 0) {
-    // troba la posició del primer caràcter no espaiat de la línia
-    /*const firstNoSpaceChar = text.search(/[^ ]/)
-    const specialComment = text.search('#!')
-    const textEmptyOrComment = firstNoSpaceChar === -1 || (text[firstNoSpaceChar] === '#' && specialComment === -1)
+  #tagIt(word, objname, line, type, modifiers = []) {
+    this.tokens.push({
+      entity: objname,
+      line: line,
+      startChar: word.pos,
+      length: word.text.length,
+      type: type,
+      modifiers: modifiers,
+    })
+  }
 
-    if (textEmptyOrComment) return // Si la línia està buida o és un comentari, no cal fer res
-    const scope = firstNoSpaceChar*/
-    const scope = identation
-
+  analizeLine(words, lineNumber, scope = 0) {
     // Posa a lloc les variables que s'han de setejar a la següent posició i esborra aquelles fora de l'abast
     for (const variableName in this.names) {
       if (this.names[variableName].scope === undefined) {
@@ -95,72 +78,55 @@ class EntityDefinitions {
     }
 
     // Busca declaracions de variables
-    let before_def = '^'
-    if (this._define_var_inline_bucle) before_def += '|\\btimes\\b'
-    let regexstr = `(?:${before_def}) *([\\p{L}_\\d]+) *( ${this._define_var_operator})`
+    let i = 0
+    while (i < words.length) {
+      if (
+        i + 1 < words.length &&
+        (words[i + 1].command === 'variable_define_is' || words[i + 1].command === 'variable_define_equal')
+      ) {
+        const variableName = words[i].text
+        const startChar = words[i].pos
+        const subtype = getDefinitionType(words.slice(i + 2), this.names, this._hasBooleans)
 
-    // Regex per trobar `var is|=`
-    const declarationRegex = new RegExp(regexstr, 'gu')
-
-    let match
-    while ((match = declarationRegex.exec(text)) !== null) {
-      const variableName = match[1]
-      const startChar = match.index + match[0].indexOf(variableName)
-
-      const subtype = varDefinitionType(text, this._hasQuotes, this._hasBooleans, this._define_var_operator, this.names)
-
-      this.#setEntity(variableName, 'variable', scope, lineNumber, startChar, subtype)
-
-      this.tokens.push({
-        line: lineNumber,
-        startChar: startChar,
-        length: variableName.length,
-        type: 'variable',
-        modifiers: ['declaration'],
-      })
+        this.#setEntity(variableName, 'variable', scope, lineNumber, startChar, subtype)
+        this.#tagIt(words[i], this.names[variableName], lineNumber, 'variable', ['declaration'])
+        i += 2
+      } else {
+        i++
+      }
     }
 
     // Busca declaracions entre for i in
-    if (this._define_var_by_for) {
-      const forInRegex = /\bfor +([\p{L}_\d]+) +in\b/gu
-      let forMatch
-      while ((forMatch = forInRegex.exec(text)) !== null) {
-        const variableName = forMatch[1]
-        const startChar = forMatch.index + forMatch[0].indexOf(variableName)
-
-        this.#setEntity(variableName, 'variable', undefined, lineNumber, startChar)
-
-        this.tokens.push({
-          line: lineNumber,
-          startChar: startChar,
-          length: variableName.length,
-          type: 'variable',
-          modifiers: ['declaration'],
-        })
+    i = 0
+    if (this._define_var_by_for)
+      while (i + 2 < words.length) {
+        if (words[i].command === 'for' && words[i + 2].command === 'in') {
+          const variableName = words[i + 1].text
+          const startChar = words[i + 1].pos
+          this.#setEntity(variableName, 'variable', undefined, lineNumber, startChar) // Scope undefined i serà posat a la següent línia
+          this.#tagIt(words[i + 1], this.names[variableName], lineNumber, 'variable', ['declaration'])
+          i += 3
+        } else {
+          i++
+        }
       }
-    }
 
     // Busca declaracions de funcions
-    if (this._define_functions) {
-      const funtionDeclRegex = new RegExp(' *(define) *\\b([\\p{L}_\\d]+)', 'gu') // Regex per trobar `define funcio`
-      let match2
-
-      while ((match2 = funtionDeclRegex.exec(text)) !== null) {
-        const functionName = match2[2]
-        const startChar = match2.index + match2[0].indexOf(functionName)
-
-        this.#setEntity(functionName, 'function', scope, lineNumber, startChar)
-
-        this.tokens.push({
-          line: lineNumber,
-          startChar: startChar,
-          length: functionName.length,
-          type: 'function',
-          modifiers: ['declaration'],
-        })
+    i = 0
+    if (this._define_functions)
+      while (i + 1 < words.length) {
+        if (words[i].command === 'define') {
+          const functionName = words[i + 1].text
+          const startChar = words[i + 1].pos
+          this.#setEntity(functionName, 'function', scope, lineNumber, startChar)
+          this.#tagIt(words[i + 1], this.names[functionName], lineNumber, 'function', ['declaration'])
+          i += 2
+        } else {
+          i++
+        }
       }
-    }
 
+    /*
     // Busca declaracions de funcions amb with
     if (this._define_fun_with) {
       const withRegex = /define +([\p{L}_\d]+) with +(.+)/gu
@@ -238,29 +204,21 @@ class EntityDefinitions {
       }
     }
 
+    */
     // Busca referències a variables
     for (const variableName in this.names) {
-      const referenceRegex = new RegExp(`(?<![\\p{L}_\\d])${variableName}(?![\\p{L}_\\d])`, 'gu')
+      for (let j = 0; j < words.length; j++) {
+        if (words[j].text !== variableName) continue
 
-      let refMatch
-      while ((refMatch = referenceRegex.exec(text)) !== null) {
-        const startChar = refMatch.index
+        const startChar = words[j].pos
 
         // Evita que es marqui com a referència a la mateixa línia de la definició
         if (this.names[variableName].defLine === lineNumber && this.names[variableName].defChar === startChar) continue
 
-        if (enUnaLlista(text, startChar, this._hasQuotes, this._define_var_operator)) continue
-
-        if (this._hasQuotes && entreCometes(text, startChar)) continue
+        if (enUnaLlista(words, j)) continue
 
         if (!this.names[variableName].outOfScope) {
-          this.tokens.push({
-            line: lineNumber,
-            startChar: startChar,
-            length: variableName.length,
-            type: this.names[variableName].type,
-            modifiers: ['use'],
-          })
+          this.#tagIt(words[j], this.names[variableName], lineNumber, this.names[variableName].type, ['use'])
         }
       }
     }
@@ -277,6 +235,15 @@ class EntityDefinitions {
 
   get(name) {
     return this.names[name]
+  }
+
+  getEntity(line, char) {
+    for (const token of this.tokens) {
+      if (token.line === line && token.startChar === char) {
+        return token.entity
+      }
+    }
+    return undefined
   }
 }
 

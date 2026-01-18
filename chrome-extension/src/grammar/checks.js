@@ -256,14 +256,14 @@ class CheckHedy {
 
     if (words.length === 0) return []
 
-    this.entities.analizeLine(lineTrim, lineNumber, identationLength)
     words = this._tagCommands(words)
+    this.entities.analizeLine(words, lineNumber, identationLength)
 
     // Tagging entities and constants
     for (let i = 0; i < words.length; i++) {
       const text = words[i].text
       if (text === '') continue
-      const entity = this.entities.get(text)
+      const entity = this.entities.getEntity(lineNumber, words[i].pos)
 
       if (
         words[i].type === 'command' &&

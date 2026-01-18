@@ -76,6 +76,9 @@ const errors = {
     message:
       "A function definition is expected. The correct format is 'define <name>' or above level 13 'define <name> with <arg1>, <arg2> <...>'.",
   },
+  'hy-execting-function-call': {
+    message: "A call to an existing function name is expected after '[NAME]'.",
+  },
   'hy-command-missing-argument-comma': {
     message: 'After a comma there must be an element.',
   },

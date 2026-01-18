@@ -76,6 +76,9 @@ const errors = {
     message:
       "S'espera una definició de funció. El format correcte és 'define <nom>' o a partir de nivell 13 'define <nom> with <arg1>, <arg2> <...>'.",
   },
+  'hy-execting-function-call': {
+    message: "S'espera una crida a un nom de funció existent després de '[NAME]'.",
+  },
   'hy-command-missing-argument-comma': {
     message: "Després d'una coma hi ha d'haver un element.",
   },
