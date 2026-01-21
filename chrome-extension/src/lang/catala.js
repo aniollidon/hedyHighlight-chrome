@@ -10,8 +10,9 @@ const texts = {
 const commands = {
   compare_is: 'is (comparació)',
   variable_define_is: 'is (definició de variable)',
-  comma_list: 'comma (llista)',
-  comma_bracedlist: 'comma (llista[])',
+  comma_list: 'coma (llista)',
+  comma_bracedlist: 'coma (llista[])',
+  comma_tuple: 'coma (dins de parèntesis)',
   to_list: 'to (llista)',
   to_range: 'to (després de range)',
   compare_equal: 'igual (comparació)',
@@ -27,6 +28,8 @@ const commands = {
   less_than_or_equal: 'menor o igual (<=)',
   compare_equalequal: 'igual (==)',
   not_equal: 'diferent (!=)',
+  parenthesis_open: "un parèntesi obert '('",
+  parenthesis_close: "un parèntesi tancat ')'",
 }
 
 const errors = {
@@ -271,6 +274,9 @@ const errors = {
   'hy-list-open-needs-close': {
     message: 'Falta tancar el claudàtor de la llista.',
   },
+  'hy-parenthesis-open-needs-close': {
+    message: 'Falta tancar el parèntesi.',
+  },
   'hy-function-return-unused': {
     message: "Aquesta funció retorna un valor que no s'està guardant en cap variable.",
   },
@@ -328,6 +334,9 @@ const errors = {
   'hy-entity-not-used': {
     message: "La [TYPE] '[NAME]' s'ha definit però no s'està fent servir enlloc.",
   },
+  'hy-command-parenthesis-missing': {
+    message: "La comanda '[NAME]' necessita parèntesis '()' per als seus arguments.",
+  },
 }
 
 export function command2text(command) {
@@ -356,6 +365,10 @@ export function type2text(type) {
     tipus = 'una llista buida'
   } else if (type.includes('list')) {
     tipus = 'una llista'
+  } else if (type.startsWith('tuple_empty')) {
+    tipus = 'uns parèntesis buits'
+  } else if (type.includes('tuple')) {
+    tipus = 'uns parèntesis'
   } else if (type.startsWith('entity_function')) {
     tipus = 'un nom de funció'
   } else if (type.startsWith('entity_parameter')) {

@@ -6,6 +6,7 @@ import { HHError, HHErrorVal, HHErrorVals, HHErrorType, HHErrorLineDef } from '.
 import { detectMorpho } from './morphosyntax.js'
 import { validType, compareTypes, detectTypeConstant } from './types.js'
 import * as def from './definitions/definitions.js'
+import { checkCommand } from './check-commands.js'
 
 const condicionalInlineRegex = /^(if +([\p{L}_\d]+) *( is | in |=| not +in ) *(".*"|[\p{L}_\d]+) |else )+(.*)$/u
 const condicionalElseInlineRegex = /(.* )(else) (.*)/
@@ -216,6 +217,14 @@ class CheckHedy {
           continue
         }
 
+        if (command.parenthesis && (words.length <= k + 1 || words[k + 1].text !== '(')) {
+          words[k].couldBe = {
+            command: command.name,
+            errorCode: 'hy-command-parenthesis-missing',
+          }
+          continue
+        }
+
         if (command.hasBefore) {
           const before = words
             .slice(0, k)
@@ -391,7 +400,7 @@ class CheckHedy {
             } else if (
               commandDef.concatOn &&
               sintagma.get(j).command &&
-              commandDef.concatOn.includes(sintagma.get(j).command)
+              sintagma.get(j).command.includes(commandDef.concatOn)
             ) {
               sintagma.markUsed(j)
               break

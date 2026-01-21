@@ -157,6 +157,81 @@ function detectBracedList(tokens) {
   return result
 }
 
+function detectParentheses(tokens) {
+  let result = []
+  let i = 0
+
+  while (i < tokens.length) {
+    // Detect empty tuple
+    if (
+      i + 1 < tokens.length &&
+      tokens[i].command &&
+      tokens[i].command.startsWith('parenthesis_open') &&
+      tokens[i + 1].command === 'parenthesis_close'
+    ) {
+      result.push({
+        text: '()',
+        tag: 'tuple_empty',
+        pos: tokens[i].pos,
+        end: tokens[i + 1].pos + tokens[i + 1].text.length,
+        type: 'tuple_empty',
+      })
+      i = i + 2
+    }
+    // Detect tuple access
+    else if (
+      i + 1 < tokens.length &&
+      !tokens[i].command &&
+      tokens[i + 1].command &&
+      tokens[i + 1].command.startsWith('parenthesis_open')
+    ) {
+      let phrase = [tokens[i], tokens[i + 1]]
+      i = i + 2
+      while (i < tokens.length && tokens[i].command !== 'parenthesis_close') {
+        phrase.push(tokens[i])
+        i++
+      }
+      if (i < tokens.length && tokens[i].command === 'parenthesis_close') {
+        phrase.push(tokens[i])
+        i++
+      }
+      result.push({
+        text: phrase.map(token => token.text).join(' '),
+        tag: 'tuple_access',
+        pos: phrase[0].pos,
+        end: phrase[phrase.length - 1].pos + phrase[phrase.length - 1].text.length,
+        type: 'tuple_access',
+        subphrase: phrase,
+      })
+    }
+    // Detect tuple definition
+    else if (tokens[i].command && tokens[i].command.startsWith('parenthesis_open')) {
+      let phrase = [tokens[i]]
+      i++
+      while (i < tokens.length && tokens[i].command !== 'parenthesis_close') {
+        phrase.push(tokens[i])
+        i++
+      }
+      if (i < tokens.length && tokens[i].command === 'parenthesis_close') {
+        phrase.push(tokens[i])
+        i++
+      }
+      result.push({
+        text: phrase.map(token => token.text).join(' '),
+        tag: 'tuple',
+        pos: phrase[0].pos,
+        end: phrase[phrase.length - 1].pos + phrase[phrase.length - 1].text.length,
+        type: 'tuple',
+        subphrase: phrase,
+      })
+    } else {
+      result.push(tokens[i])
+      i++
+    }
+  }
+  return result
+}
+
 function detectUnquotedStrings(tokens) {
   let result = []
   let i = 0
@@ -486,6 +561,7 @@ function detectMorpho(words, hasAtRandom, hasFunctions, hasRange) {
   words = detectNegatives(words)
   words = detectUnquotedStrings(words)
   words = detectBracedList(words)
+  words = detectParentheses(words)
   words = detectMath(words)
   words = detectLanguageFunctions(words, hasAtRandom, hasRange)
   if (hasFunctions) words = detectFuctionUsages(words)

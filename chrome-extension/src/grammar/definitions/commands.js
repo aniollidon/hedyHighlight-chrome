@@ -52,7 +52,7 @@ const operationTemplate = {
   ],
 }
 
-const printAskTemplate = {
+const printableTemplate = {
   minArgumentsAfter: 1,
   arguments: [
     {
@@ -109,11 +109,57 @@ const printAskTemplate = {
   ],
 }
 
+const onTuppleArgument = [
+  {
+    refused: ['entity_variable_list'],
+    levelEnd: def.PRINT_LIST.before(),
+    codeerror: 'hy-cant-print-list',
+  },
+  {
+    refused: ['entity_variable_list'],
+    levelStart: def.PRINT_LIST.start,
+    codeerror: 'hy-softwarn-print-list',
+  },
+  {
+    refused: ['entity_function'],
+    codeerror: 'hy-cant-print-function',
+  },
+  {
+    levelStart: def.COMETES_TEXTOS.start,
+    refused: ['constant_string_unquoted'],
+    codeerror: 'hy-text-must-be-quoted',
+  },
+  {
+    refused: ['command'],
+    codeerror: 'hy-refused-command-for-print',
+  },
+  {
+    allowed: ['$number', '$quoted', '$boolean', 'command_parenthesis_close', 'command_comma'],
+    codeerror: 'hy-execting-number-string',
+  },
+]
+
 const commandDefinition = [
+  {
+    // S'ha de definir abans de print sense parèntesis
+    name: 'print_parenthesis',
+    text: 'print',
+    levelStart: def.PARENTHESES.start,
+    levelEnd: def.PARENTHESES.end,
+    parenthesis: true,
+    atBegining: true,
+    argumentsAfter: 1,
+    arguments: [
+      {
+        allowed: ['tuple'],
+        codeerror: 'hy-command-parenthesis-missing',
+      },
+    ],
+  },
   {
     text: 'print',
     atBegining: true,
-    ...printAskTemplate,
+    ...printableTemplate,
   },
   {
     text: 'turn',
@@ -191,7 +237,7 @@ const commandDefinition = [
     hasBefore: /^[\p{L}_\d]+ (is|=)$/gu,
     levelStart: def.CMD_ASK_IS.start,
     levelEnd: def.CMD_ASK_IS.end,
-    ...printAskTemplate,
+    ...printableTemplate,
   },
   {
     text: 'echo',
@@ -249,7 +295,7 @@ const commandDefinition = [
     text: 'is',
     name: 'variable_define_is',
     levelStart: def.CMD_IS.start,
-    concatOn: ['comma_list'],
+    concatOn: ['comma'],
     hasBefore: /^[\p{L}\d_]+ *(\[ *[\p{L}\d_]+ *\])?$/gu,
     syntax: [
       {
@@ -313,7 +359,7 @@ const commandDefinition = [
     text: '=',
     name: 'variable_define_equal',
     levelStart: def.CMD_EQUAL.start,
-    concatOn: ['comma_list'],
+    concatOn: ['comma'],
     hasBefore: /^[\p{L}\d_]+ *(\[ *[\p{L}\d_]+ *\])?$/gu,
     syntax: [
       {
@@ -342,52 +388,11 @@ const commandDefinition = [
     ],
   },
   {
-    // no hauria d'importar l'ordre, però sino no funciona l'error de deteccio de comes
     text: ',',
-    name: 'comma_argument',
-    levelStart: def.FUNCTIONS_WITH.start,
-    levelEnd: def.FUNCTIONS_WITH.end,
-    hasBefore: /\bwith\b/g,
+    name: 'comma',
+    levelStart: def.CMD_COMMA.start,
     argumentsAfter: 1,
     argumentsBefore: 1,
-    concatOn: ['comma_argument'],
-  },
-  {
-    text: ',',
-    name: 'comma_list',
-    levelStart: def.NOBRACED_LISTS.start,
-    levelEnd: def.NOBRACED_LISTS.end,
-    hasBefore: /is |=/g,
-    argumentsAfter: 1,
-    argumentsBefore: 1,
-    concatOn: ['comma_list'],
-    arguments: [
-      {
-        allowed: ['constant'],
-        codeerror: 'hy-list-definition-types',
-      },
-      {
-        levelEnd: def.COMETES_ARREU.before(),
-        refused: ['constant_string_quoted'],
-        codeerror: 'hy-unnecessary-quotes',
-      },
-    ],
-  },
-  {
-    text: ',',
-    name: 'comma_bracedlist',
-    levelStart: def.BRACED_LIST.start,
-    hasBefore: /\[/g,
-    argumentsAfter: 1,
-    argumentsBefore: 1,
-    concatOn: ['comma_bracedlist', 'bracket_close'],
-    arguments: [
-      {
-        refused: ['command_bracket_close'],
-        position: 1,
-        codeerror: 'hy-command-missing-argument-comma',
-      },
-    ],
   },
   {
     text: 'remove',
@@ -877,11 +882,26 @@ const commandDefinition = [
     ],
   },
   {
+    text: '(',
+    name: 'parenthesis_open',
+    levelStart: def.PARENTHESES.start,
+    argumentsAfter: 1,
+    concatOn: ['comma'],
+    closedBy: 'parenthesis_close',
+    arguments: onTuppleArgument,
+  },
+  {
+    text: ')',
+    name: 'parenthesis_close',
+    levelStart: def.PARENTHESES.start,
+    minArgumentsBefore: 1,
+  },
+  {
     text: '[',
     name: 'bracket_open_definition',
     levelStart: def.BRACED_LIST.start,
     argumentsAfter: 1,
-    concatOn: ['comma_bracedlist'],
+    concatOn: ['comma'],
     closedBy: 'bracket_close',
     arguments: [
       {

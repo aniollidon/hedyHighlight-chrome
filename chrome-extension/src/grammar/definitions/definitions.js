@@ -36,6 +36,7 @@ class OnLevel {
 export const COMETES_TEXTOS = new OnLevel(4)
 export const COMETES_ARREU = new OnLevel(12)
 export const COLON = new OnLevel(13)
+export const PARENTHESES = new OnLevel(13)
 
 export const CONDITIONAL_INLINE = new OnLevel(5, 5)
 export const CONDITIONAL_INLINE_WARN = new OnLevel(6)
@@ -70,6 +71,7 @@ export const CMD_SLEEP = new OnLevel(2)
 export const CMD_ASK_NOIS = new OnLevel(1, 1)
 export const CMD_ECHO = new OnLevel(1, 1)
 export const CMD_ASK_IS = new OnLevel(2, 12)
+export const CMD_COMMA = new OnLevel(3)
 export const CMD_INPUT = new OnLevel(13)
 export const CMD_IS = new OnLevel(2)
 export const CMD_EQUAL = MATES

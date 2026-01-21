@@ -12,6 +12,7 @@ const commands = {
   variable_define_is: 'is (variable definition)',
   comma_list: 'comma (list)',
   comma_bracedlist: 'comma (list[])',
+  comma_tuple: 'comma (inside parentheses)',
   to_list: 'to (list)',
   to_range: 'to (after range)',
   compare_equal: 'equal (comparison)',
@@ -271,6 +272,9 @@ const errors = {
   'hy-list-open-needs-close': {
     message: 'Missing closing bracket for the list.',
   },
+  'hy-parenthesis-open-needs-close': {
+    message: 'Missing closing parenthesis.',
+  },
   'hy-function-return-unused': {
     message: 'This function returns a value that is not being saved in any variable.',
   },
@@ -328,6 +332,9 @@ const errors = {
   'hy-entity-not-used': {
     message: "The [TYPE] '[NAME]' has been defined but is not being used anywhere.",
   },
+  'hy-command-parenthesis-missing': {
+    message: "The command '[NAME]' needs parentheses '()' for its arguments.",
+  },
 }
 
 export function command2text(command) {
@@ -356,6 +363,10 @@ export function type2text(type) {
     tipus = 'An empty list'
   } else if (type.includes('list')) {
     tipus = 'A list'
+  } else if (type.startsWith('tuple_empty')) {
+    tipus = 'An empty parentheses'
+  } else if (type.includes('tuple')) {
+    tipus = 'A parentheses'
   } else if (type.startsWith('entity_function')) {
     tipus = 'A function name'
   } else if (type.startsWith('entity_parameter')) {
