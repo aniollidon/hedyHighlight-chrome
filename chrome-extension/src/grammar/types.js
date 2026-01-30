@@ -108,11 +108,11 @@ export function enUnaLlista(words, id_word) {
   // abans o després hi ha ',' sense comandes
 
   for (let i = id_word - 1; i >= 0; i--) {
-    if (['comma_list', 'comma_bracedlist'].includes(words[i].command)) return true
+    if ('comma' === words[i].command) return true
     if (words[i].command) break
   }
   for (let i = id_word + 1; i < words.length; i++) {
-    if (['comma_list', 'comma_bracedlist'].includes(words[i].command)) return true
+    if ('comma' === words[i].command) return true
     if (words[i].command) break
   }
 

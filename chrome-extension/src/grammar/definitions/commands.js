@@ -53,7 +53,6 @@ const operationTemplate = {
 }
 
 const printableTemplate = {
-  minArgumentsAfter: 1,
   arguments: [
     {
       refused: ['entity_variable_list'],
@@ -109,36 +108,6 @@ const printableTemplate = {
   ],
 }
 
-const onTuppleArgument = [
-  {
-    refused: ['entity_variable_list'],
-    levelEnd: def.PRINT_LIST.before(),
-    codeerror: 'hy-cant-print-list',
-  },
-  {
-    refused: ['entity_variable_list'],
-    levelStart: def.PRINT_LIST.start,
-    codeerror: 'hy-softwarn-print-list',
-  },
-  {
-    refused: ['entity_function'],
-    codeerror: 'hy-cant-print-function',
-  },
-  {
-    levelStart: def.COMETES_TEXTOS.start,
-    refused: ['constant_string_unquoted'],
-    codeerror: 'hy-text-must-be-quoted',
-  },
-  {
-    refused: ['command'],
-    codeerror: 'hy-refused-command-for-print',
-  },
-  {
-    allowed: ['$number', '$quoted', '$boolean', 'command_parenthesis_close', 'command_comma'],
-    codeerror: 'hy-execting-number-string',
-  },
-]
-
 const commandDefinition = [
   {
     // S'ha de definir abans de print sense parèntesis
@@ -146,19 +115,16 @@ const commandDefinition = [
     text: 'print',
     levelStart: def.PARENTHESES.start,
     levelEnd: def.PARENTHESES.end,
-    parenthesis: true,
+    parenthesis: true, // ja busca els parèntesis inici i final
     atBegining: true,
     argumentsAfter: 1,
-    arguments: [
-      {
-        allowed: ['tuple'],
-        codeerror: 'hy-command-parenthesis-missing',
-      },
-    ],
+    concatOn: ['comma'],
+    ...printableTemplate,
   },
   {
     text: 'print',
     atBegining: true,
+    minArgumentsAfter: 1,
     ...printableTemplate,
   },
   {
@@ -166,6 +132,12 @@ const commandDefinition = [
     atBegining: true,
     argumentsAfter: 1,
     arguments: [
+      {
+        levelStart: def.CMD_TURN_LEFTRIGHT.start,
+        levelEnd: def.CMD_TURN_LEFTRIGHT.end,
+        allowed: ['command_left', 'command_right'],
+        codeerror: 'hy-execting-left-right',
+      },
       {
         levelStart: def.CMD_TURN_ANGLE.start,
         allowed: ['$number'],
@@ -237,6 +209,17 @@ const commandDefinition = [
     hasBefore: /^[\p{L}_\d]+ (is|=)$/gu,
     levelStart: def.CMD_ASK_IS.start,
     levelEnd: def.CMD_ASK_IS.end,
+    minArgumentsAfter: 1,
+    ...printableTemplate,
+  },
+  {
+    text: 'input',
+    hasBefore: /^[\p{L}_\d]+ (is|=)$/gu,
+    levelStart: def.CMD_INPUT.start,
+    levelEnd: def.CMD_INPUT.end,
+    parenthesis: true, // ja busca els parèntesis inici i final
+    argumentsAfter: 1,
+    concatOn: ['comma'],
     ...printableTemplate,
   },
   {
@@ -297,16 +280,7 @@ const commandDefinition = [
     levelStart: def.CMD_IS.start,
     concatOn: ['comma'],
     hasBefore: /^[\p{L}\d_]+ *(\[ *[\p{L}\d_]+ *\])?$/gu,
-    syntax: [
-      {
-        minArgumentsAfter: 1,
-        levelEnd: def.COMETES_ARREU.before(),
-      },
-      {
-        argumentsAfter: 1,
-        levelStart: def.COMETES_ARREU.start,
-      },
-    ],
+    argumentsAfter: 1,
     arguments: [
       {
         levelEnd: def.COMETES_ARREU.before(),
@@ -361,16 +335,7 @@ const commandDefinition = [
     levelStart: def.CMD_EQUAL.start,
     concatOn: ['comma'],
     hasBefore: /^[\p{L}\d_]+ *(\[ *[\p{L}\d_]+ *\])?$/gu,
-    syntax: [
-      {
-        minArgumentsAfter: 1,
-        levelEnd: def.COMETES_ARREU.before(),
-      },
-      {
-        argumentsAfter: 1,
-        levelEnd: def.COMETES_ARREU.start,
-      },
-    ],
+    argumentsAfter: 1,
     arguments: [
       {
         levelEnd: def.COMETES_ARREU.before(),
@@ -392,7 +357,6 @@ const commandDefinition = [
     name: 'comma',
     levelStart: def.CMD_COMMA.start,
     argumentsAfter: 1,
-    argumentsBefore: 1,
   },
   {
     text: 'remove',
@@ -612,7 +576,29 @@ const commandDefinition = [
   {
     text: 'define',
     levelStart: def.FUNCTIONS_DEFINE_CALL.start,
-    levelEnd: def.FUNCTIONS_DEFINE_CALL.end,
+    atBegining: true,
+    minArgumentsAfter: 1,
+    arguments: [
+      {
+        refused: ['constant'],
+        codeerror: 'hy-execting-parameter',
+      },
+      {
+        allowed: ['entity_function', 'entity_parameter', 'command_with', 'command_comma_argument'],
+        codeerror: 'hy-execting-function-definition',
+      },
+    ],
+    syntax: [
+      {
+        closedBy: 'colon',
+        levelStart: def.COLON.start,
+      },
+    ],
+  },
+  {
+    text: 'def',
+    levelStart: def.FUNCTIONS_PYTHON.start,
+    levelEnd: def.FUNCTIONS_PYTHON.end,
     atBegining: true,
     minArgumentsAfter: 1,
     arguments: [
@@ -868,7 +854,7 @@ const commandDefinition = [
     levelStart: def.BRACED_LIST.start,
     argumentsAfter: 1,
     closedBy: 'bracket_close',
-    hasBefore: /[\p{L}_\d]+ *$/gu,
+    hasBefore: /[\p{L}_\d]+ *(?<!\bis)$/gu,
     arguments: [
       {
         allowed: ['$number_integer', 'command_bracket_close', 'command_random'],
@@ -880,21 +866,6 @@ const commandDefinition = [
         codeerror: 'hy-access-brackets-format-arguments',
       },
     ],
-  },
-  {
-    text: '(',
-    name: 'parenthesis_open',
-    levelStart: def.PARENTHESES.start,
-    argumentsAfter: 1,
-    concatOn: ['comma'],
-    closedBy: 'parenthesis_close',
-    arguments: onTuppleArgument,
-  },
-  {
-    text: ')',
-    name: 'parenthesis_close',
-    levelStart: def.PARENTHESES.start,
-    minArgumentsBefore: 1,
   },
   {
     text: '[',
@@ -909,6 +880,18 @@ const commandDefinition = [
         codeerror: 'hy-list-definition-types',
       },
     ],
+  },
+
+  {
+    text: '(',
+    name: 'parenthesis_open',
+    levelStart: def.PARENTHESES.start,
+  },
+  {
+    text: ')',
+    name: 'parenthesis_close',
+    levelStart: def.PARENTHESES.start,
+    minArgumentsBefore: 1,
   },
   {
     text: ']',

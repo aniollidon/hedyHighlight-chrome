@@ -5,6 +5,12 @@ const errorMapping = [
     to: 'hy-command-unexpected-argument-conditional',
   },
   {
+    codeerror: 'hy-command-unexpected-argument',
+    on: ['['], // TODO hauria de ser bracket_open_access
+    to: 'hy-list-extra-element',
+  },
+  {
+    //DEPRECAR?¿
     codeerror: 'hy-command-missing-argument',
     on: [','], // TODO hauria de ser comma_list
     to: 'hy-command-missing-argument-comma',
@@ -34,6 +40,21 @@ const errorMapping = [
     codeerror: 'hy-expecting-close',
     on: ['if', 'else', 'elif', 'while', 'for'],
     to: 'hy-missing-colon',
+  },
+  {
+    codeerror: 'hy-refused-command-for-print',
+    on: ['(', ')'], // TODO hauria de ser parenthesis_open/close
+    to: 'hy-unnecessary-parentheses',
+  },
+  {
+    codeerror: 'hy-refused-command-for-print',
+    on: [','], // TODO hauria de ser comma
+    to: 'hy-unnecessary-comma',
+  },
+  {
+    codeerror: 'hy-level-unavailable-yet',
+    on: [':'], // TODO hauria de ser colon
+    to: 'hy-unnecessary-colon',
   },
 ]
 

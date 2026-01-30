@@ -16,6 +16,8 @@ class Command {
     if (!this.name) this.name = this.text
 
     if (!this.parenthesis) this.parenthesis = false
+
+    if (this.parenthesis) this.closedBy = this.closedBy || 'parenthesis_close'
   }
 }
 

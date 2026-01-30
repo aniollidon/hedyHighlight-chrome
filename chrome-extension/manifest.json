@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Hedy Error Highlighter",
-  "version": "1.0",
+  "version": "2.0",
   "description": "Adds error highlighting to the Hedy code editor.",
   "permissions": ["storage"],
   "options_page": "options.html",

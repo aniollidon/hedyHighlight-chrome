@@ -6,9 +6,10 @@ import { HHError, HHErrorVal, HHErrorVals, HHErrorType, HHErrorLineDef } from '.
 import { detectMorpho } from './morphosyntax.js'
 import { validType, compareTypes, detectTypeConstant } from './types.js'
 import * as def from './definitions/definitions.js'
-import { checkCommand } from './check-commands.js'
+import { HedyCommandAnalyzer } from './command-analyzer.js'
 
-const condicionalInlineRegex = /^(if +([\p{L}_\d]+) *( is | in |=| not +in ) *(".*"|[\p{L}_\d]+) |else )+(.*)$/u
+const condicionalInlineRegex =
+  /^(if +([\p{L}_\d]+) *( is | in |=|==|<|>|!=|<=|>=| not +in ) *(".*"|[\p{L}_\d]+) *:? |else )+(.*)$/u
 const condicionalElseInlineRegex = /(.* )(else) (.*)/
 const bucleInlineRegex = /^(repeat +([\p{L}_\d]+) +times +)(.*)$/u
 
@@ -16,9 +17,9 @@ class CheckHedy {
   constructor(level) {
     this.memory = new Memory(level)
     this.entities = new EntityDefinitions(level)
-    this.commandsSyntax = new hedyCommands(level)
-    this.level = level
     this._usesCometesText = def.COMETES_TEXTOS.at(level)
+    this.commandsSyntax = new HedyCommandAnalyzer(level, this._usesCometesText)
+    this.level = level
     this._defineVarOp = def.CMD_EQUAL.at(level) ? 'is|=' : 'is'
     this._conditionalInline = def.CONDITIONAL_INLINE.start <= level // No es mira quan acaba ja que ens interessa trobar-los per mostrar errors
     this._bucleInline = def.LOOP_INLINE.start <= level // Idem anterior
@@ -162,103 +163,6 @@ class CheckHedy {
     return errorsFound
   }
 
-  _tagCommands(words) {
-    // find print|ask|echo in words
-    const positionPAE = words.findIndex(w => w.text === 'print' || w.text === 'ask' || w.text === 'echo')
-
-    for (let k = 0; k < words.length; k++) {
-      for (const command of this.commandsSyntax.getAll()) {
-        let contextValid = true
-
-        // Després de print, ask o echo tot és string i no comandes (exeptuant at random n3)
-        if (
-          !this._usesCometesText &&
-          positionPAE != -1 &&
-          positionPAE < k &&
-          !(
-            (words[k].text === 'at' && words[k + 1].text === 'random') || // TODO: Això s'hauria de fer millor
-            (words[k].text === 'random' && k > 0 && words[k - 1].text === 'at')
-          )
-        )
-          continue
-
-        if (words[k].text !== command.text) {
-          if (command.levelStart && command.levelStart > this.level) continue
-          if (command.levelEnd && command.levelEnd < this.level) continue
-
-          if (words[k].text.toLowerCase() === command.text) {
-            words[k].couldBe = {
-              command: command.name,
-              errorCode: 'hy-to-lowercase-command',
-            }
-          }
-          continue
-        }
-
-        if (command.levelStart && command.levelStart > this.level) {
-          words[k].couldBe = {
-            command: command.name,
-            errorCode: 'hy-level-unavailable-yet',
-          }
-          continue
-        } else if (command.levelEnd && command.levelEnd < this.level) {
-          words[k].couldBe = {
-            command: command.name,
-            errorCode: 'hy-level-unavailable-deprecated',
-          }
-          continue
-        }
-
-        if (command.atBegining && k !== 0) {
-          words[k].couldBe = {
-            command: command.name,
-            errorCode: 'hy-at-begining',
-          }
-          continue
-        }
-
-        if (command.parenthesis && (words.length <= k + 1 || words[k + 1].text !== '(')) {
-          words[k].couldBe = {
-            command: command.name,
-            errorCode: 'hy-command-parenthesis-missing',
-          }
-          continue
-        }
-
-        if (command.hasBefore) {
-          const before = words
-            .slice(0, k)
-            .map(w => w.text)
-            .join(' ')
-          contextValid &&= before.match(command.hasBefore)
-        }
-
-        if (command.hasAfter) {
-          const after = words
-            .slice(k + 1)
-            .map(w => w.text)
-            .join(' ')
-          contextValid &&= after.match(command.hasAfter)
-        }
-
-        if (contextValid) {
-          words[k].type = 'command'
-          words[k].tag = 'command_' + command.name
-          words[k].command = command.name
-          words[k].couldBe = undefined
-          break
-        } else {
-          words[k].couldBe = {
-            command: command.name,
-            errorCode: 'hy-command-context',
-          }
-        }
-      }
-    }
-
-    return words
-  }
-
   _tagWords(words, identationLength, lineNumber) {
     // suma la identació a la posició de les paraules
     for (let i = 0; i < words.length; i++) {
@@ -267,7 +171,7 @@ class CheckHedy {
 
     if (words.length === 0) return []
 
-    words = this._tagCommands(words)
+    words = this.commandsSyntax.tagCommands(words)
     this.entities.analizeLine(words, lineNumber, identationLength)
 
     // Tagging entities and constants
@@ -280,7 +184,6 @@ class CheckHedy {
         words[i].type === 'command' &&
         entity !== undefined &&
         entity.defLine == lineNumber &&
-        words[i].command !== 'print' &&
         words[i].command !== 'print'
       ) {
         words[i].type = 'entity_' + entity.type
@@ -339,166 +242,8 @@ class CheckHedy {
       }
 
       if (word.command) {
-        const commandDef = this.commandsSyntax.getByName(word.command)
-        let endArgsCommand = sintagma.size()
-        let startArgsCommand = k
-        if (!commandDef) continue
-        sintagma.markUsed(k)
-        let usesParameters = false
-
-        if (
-          commandDef.argumentsAfter !== undefined ||
-          commandDef.minArgumentsAfter !== undefined ||
-          commandDef.usesParameters
-        ) {
-          let argumentsAfter = [0]
-
-          if (commandDef.usesParameters) {
-            if (k + 1 < sintagma.size() && sintagma.get(k + 1).entity && sintagma.get(k + 1).entity.params) {
-              usesParameters = sintagma.get(k + 1).entity.params.length
-              argumentsAfter = [usesParameters * 2 + 1] // call [NAME] with [PARAM], [PARAM] // 2*params -1 (params + commas) + 2 (name & with)
-            }
-          } else if (Array.isArray(commandDef.argumentsAfter)) argumentsAfter = commandDef.argumentsAfter
-          else argumentsAfter = [commandDef.argumentsAfter]
-
-          let endArgsMin = k + Math.min(...argumentsAfter)
-          let endArgsMax = k + Math.max(...argumentsAfter)
-
-          if (commandDef.minArgumentsAfter !== undefined) {
-            endArgsMin = k + commandDef.minArgumentsAfter
-            endArgsMax = sintagma.size() // Trick to avoid for loop unexpected-argument
-          }
-
-          endArgsCommand = endArgsMax
-
-          if (sintagma.size() - 1 < endArgsMin) {
-            if (usesParameters)
-              errorsFound.push(
-                new HHErrorVals(
-                  sintagma.get(1).text,
-                  'hy-function-missing-argument',
-                  sintagma.start(1),
-                  sintagma.end(1),
-                  lineNumber,
-                  {
-                    EXPECTED: usesParameters,
-                    FOUND: Math.round((sintagma.size() - 3) / 2),
-                  },
-                ),
-              )
-            else
-              errorsFound.push(
-                new HHErrorVal(word.text, 'hy-command-missing-argument', start, end, lineNumber, endArgsMin - k),
-              )
-          }
-
-          // Qualsevol element després dels necessaris són erronis
-          for (let j = endArgsMax + 1; j < sintagma.size(); j++) {
-            if (commandDef.closedBy && j == sintagma.size() - 1 && commandDef.closedBy === sintagma.get(j).command) {
-              sintagma.markUsed(j)
-              continue
-            } else if (
-              commandDef.concatOn &&
-              sintagma.get(j).command &&
-              sintagma.get(j).command.includes(commandDef.concatOn)
-            ) {
-              sintagma.markUsed(j)
-              break
-            } else if (usesParameters)
-              errorsFound.push(
-                new HHErrorVal(
-                  sintagma.get(1).text,
-                  'hy-function-unexpected-argument',
-                  sintagma.start(j),
-                  sintagma.end(j),
-                  lineNumber,
-                  usesParameters,
-                ),
-              )
-            else
-              errorsFound.push(
-                new HHErrorVal(
-                  commandDef.text,
-                  'hy-command-unexpected-argument',
-                  sintagma.start(j),
-                  sintagma.end(j),
-                  lineNumber,
-                  endArgsMax - k,
-                ),
-              )
-          }
-
-          if (commandDef.closedBy && commandDef.closedBy !== sintagma.last().command) {
-            errorsFound.push(
-              new HHErrorVal(
-                word.text,
-                'hy-expecting-close',
-                sintagma.sintagmaEnd() - 1,
-                sintagma.sintagmaEnd(),
-                lineNumber,
-                commandDef.closedBy,
-              ),
-            )
-          }
-        }
-
-        if (commandDef.argumentsBefore !== undefined) {
-          if (k < commandDef.argumentsBefore) {
-            errorsFound.push(
-              new HHErrorVal(
-                word.text,
-                'hy-command-missing-argument-before',
-                start,
-                end,
-                lineNumber,
-                commandDef.argumentsBefore,
-              ),
-            )
-          } else {
-            startArgsCommand = k - commandDef.argumentsBefore
-          }
-        }
-
-        // Marca com a utilitzats els arguments vàlids
-        for (let j = startArgsCommand; j < endArgsCommand + 1 && j < sintagma.size(); j++) {
-          sintagma.markUsed(j)
-        }
-
-        if (commandDef.arguments) {
-          for (let sx = 0; sx < commandDef.arguments.length; sx++) {
-            const rule = commandDef.arguments[sx]
-            if (rule.levelStart && rule.levelStart > this.level) continue
-            if (rule.levelEnd && rule.levelEnd < this.level) continue
-            if (rule.closedBy) {
-              if (sintagma.last().tag === rule.closedBy) sintagma.markUsed(sintagma.size() - 1)
-              else continue
-            } else {
-              for (let j = startArgsCommand; j < endArgsCommand + 1 && j < sintagma.size(); j++) {
-                if (j == k) continue // No comprova la commanda en sí mateixa
-
-                const arg = sintagma.get(j)
-                const sstart = sintagma.start(j)
-                const send = sintagma.end(j)
-
-                if (
-                  commandDef.concatOn &&
-                  (j === 0 || !sintagma.get(j - 1).command) && // Can concat a command
-                  sintagma.get(j).command &&
-                  commandDef.concatOn.includes(sintagma.get(j).command)
-                )
-                  break // Stop checking if it's a concatOn command
-
-                if (rule.positionInSintagma !== undefined && rule.positionInSintagma !== k) continue
-                if (rule.position !== undefined && rule.position !== j - startArgsCommand) continue
-                if (rule.refused && !validType(arg.tag, rule.refused)) continue
-                if (rule.allowed && validType(arg.tag, rule.allowed)) continue
-
-                const type = arg.couldBe ? 'command_' + arg.couldBe.command : arg.tag
-                errorsFound.push(new HHErrorType(word.text, rule.codeerror, sstart, send, lineNumber, type))
-              }
-            }
-          }
-        }
+        const commandErrors = this.commandsSyntax.checkCommand(sintagma, k, lineNumber)
+        errorsFound.push(...commandErrors)
       }
 
       if (word.entity) {

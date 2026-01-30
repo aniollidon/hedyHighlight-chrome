@@ -3,8 +3,14 @@ function detectPrintUsages(tokens) {
   let i = 0
 
   while (i < tokens.length) {
-    // (print|echo) ... calls
-    if (i + 1 < tokens.length && (tokens[i].command === 'print' || tokens[i].command === 'echo')) {
+    // (print|echo|input|ask) ... calls
+    if (
+      i + 1 < tokens.length &&
+      (tokens[i].command === 'print' ||
+        tokens[i].command === 'echo' ||
+        tokens[i].command === 'input' ||
+        tokens[i].command === 'ask')
+    ) {
       const phrase = [tokens[i]]
       i++
 
@@ -16,23 +22,6 @@ function detectPrintUsages(tokens) {
       result.push({
         text: phrase.map(token => token.text).join(' '),
         tag: 'call_' + phrase[0].command,
-        pos: phrase[0].pos,
-        end: phrase[phrase.length - 1].pos + phrase[phrase.length - 1].text.length,
-        type: 'function_usage',
-        subphrase: phrase,
-      })
-    }
-    // ask ... calls
-    else if (i + 1 < tokens.length && tokens[i].command === 'ask' && !tokens[i + 1].command) {
-      const phrase = [tokens[i]]
-      i++
-      while (i < tokens.length && !tokens[i].command) {
-        phrase.push(tokens[i])
-        i++
-      }
-      result.push({
-        text: phrase.map(token => token.text).join(' '),
-        tag: 'call_ask',
         pos: phrase[0].pos,
         end: phrase[phrase.length - 1].pos + phrase[phrase.length - 1].text.length,
         type: 'function_usage',
@@ -157,6 +146,7 @@ function detectBracedList(tokens) {
   return result
 }
 
+/*
 function detectParentheses(tokens) {
   let result = []
   let i = 0
@@ -231,6 +221,7 @@ function detectParentheses(tokens) {
   }
   return result
 }
+*/
 
 function detectUnquotedStrings(tokens) {
   let result = []
@@ -561,7 +552,7 @@ function detectMorpho(words, hasAtRandom, hasFunctions, hasRange) {
   words = detectNegatives(words)
   words = detectUnquotedStrings(words)
   words = detectBracedList(words)
-  words = detectParentheses(words)
+  //words = detectParentheses(words)
   words = detectMath(words)
   words = detectLanguageFunctions(words, hasAtRandom, hasRange)
   if (hasFunctions) words = detectFuctionUsages(words)

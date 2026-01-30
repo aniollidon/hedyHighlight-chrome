@@ -10,9 +10,7 @@ const texts = {
 const commands = {
   compare_is: 'is (comparison)',
   variable_define_is: 'is (variable definition)',
-  comma_list: 'comma (list)',
-  comma_bracedlist: 'comma (list[])',
-  comma_tuple: 'comma (inside parentheses)',
+  comma: 'comma',
   to_list: 'to (list)',
   to_range: 'to (after range)',
   compare_equal: 'equal (comparison)',
@@ -28,14 +26,16 @@ const commands = {
   less_than_or_equal: 'less than or equal (<=)',
   compare_equalequal: 'equal (==)',
   not_equal: 'not equal (!=)',
+  parenthesis_open: "open parenthesis '('",
+  parenthesis_close: "closed parenthesis ')'",
 }
 
 const errors = {
   'hy-command-context': {
-    message: "'[NAME]' command cannot be used this way.",
+    message: "'[COMMAND]' command cannot be used this way.",
   },
   'hy-type-context': {
-    message: "The text '[NAME]' which is [LOWERTYPE] cannot be used this way.",
+    message: "The text '[COMMAND]' which is [TYPE] cannot be used this way.",
   },
   'hy-recomended-equal': {
     message: "It is recommended to use '=' instead of 'is'.",
@@ -47,31 +47,31 @@ const errors = {
     message: 'This text should be in quotes. Maybe it is a misspelled variable?',
   },
   'hy-recomended-equalequal': {
-    message: "At this level you can use '==' instead of '[NAME]'.",
+    message: "At this level you can use '==' instead of '[COMMAND]'.",
   },
   'hy-entity-changes-content-type': {
     message: "Be careful, variable '[NAME]' has changed its type compared to its definition on line [LINEDEF].",
   },
   'hy-at-begining': {
-    message: "'[NAME]' command must be at the beginning.",
+    message: "'[COMMAND]' command must be at the beginning.",
   },
   'hy-command-missing-argument': {
-    message: "'[NAME]' command needs at least one argument after.",
-    messagePlural: "'[NAME]' command needs [VALUE] arguments after.",
-    messageZero: "'[NAME]' command doesn't need arguments.",
+    message: "'[COMMAND]' command needs at least one argument after.",
+    messagePlural: "'[COMMAND]' command needs [VALUE] arguments after.",
+    messageZero: "'[COMMAND]' command doesn't need arguments.",
   },
   'hy-command-missing-argument-before': {
-    message: "'[NAME]' command needs an argument before.",
-    messagePlural: "'[NAME]' command needs [VALUE] arguments before.",
-    messageZero: "'[NAME]' command doesn't need arguments before.",
+    message: "'[COMMAND]' command needs an argument before.",
+    messagePlural: "'[COMMAND]' command needs [VALUE] arguments before.",
+    messageZero: "'[COMMAND]' command doesn't need arguments before.",
   },
   'hy-command-unexpected-argument': {
-    message: "'[NAME]' command only accepts one argument after.",
-    messagePlural: "'[NAME]' command only accepts [VALUE] arguments after.",
-    messageZero: "'[NAME]' command doesn't accept any value after.",
+    message: "'[COMMAND]' command only accepts one argument after.",
+    messagePlural: "'[COMMAND]' command only accepts [VALUE] arguments after.",
+    messageZero: "'[COMMAND]' command doesn't accept any value after.",
   },
   'hy-command-unexpected-argument-conditional': {
-    message: "'[NAME]' command only accepts one condition after.",
+    message: "'[COMMAND]' command only accepts one condition after.",
   },
   'hy-execting-function-definition': {
     message:
@@ -84,10 +84,10 @@ const errors = {
     message: 'After a comma there must be an element.',
   },
   'hy-level-unavailable-yet': {
-    message: "'[NAME]' command cannot be used at this level yet.",
+    message: "'[COMMAND]' command cannot be used at this level yet.",
   },
   'hy-level-unavailable-deprecated': {
-    message: "'[NAME]' command can no longer be used at this level.",
+    message: "'[COMMAND]' command can no longer be used at this level.",
   },
   'hy-to-lowercase-command': {
     message: "Are you searching for '[LOWER]' command? If so, it must be all lowercase.",
@@ -109,44 +109,44 @@ const errors = {
     message: 'It does not make much sense to compare the same thing twice. It will always be false.',
   },
   'hy-execting-same-type': {
-    message: "'[NAME]' command expects the same type before and after.",
+    message: "'[COMMAND]' command expects the same type before and after.",
   },
   'hy-execting-number': {
-    message: "'[NAME]' command expects a number. [TYPE] was found.",
+    message: "'[COMMAND]' command expects a number. [TYPE] was found.",
   },
   'hy-execting-number-integer': {
-    message: "'[NAME]' command expects an integer number. [TYPE] was found.",
+    message: "'[COMMAND]' command expects an integer number. [TYPE] was found.",
   },
   'hy-execting-command-times': {
     message:
-      "'[NAME]' command expects an integer number and then 'times' command. [TYPE] was found in the second position.",
+      "'[COMMAND]' command expects an integer number and then 'times' command. [TYPE] was found in the second position.",
   },
   'hy-execting-number-string': {
-    message: "'[NAME]' command expects numbers or text. [TYPE] was found.",
+    message: "'[COMMAND]' command expects numbers or text. [COMMAND] which is [TYPE] was found.",
   },
   'hy-execting-number-note': {
-    message: "'[NAME]' command expects a note or a number. [TYPE] was found.",
+    message: "'[COMMAND]' command expects a note or a number. [COMMAND] which is [TYPE] was found.",
   },
   'hy-execting-color': {
-    message: "'[NAME]' command expects a color. [TYPE] was found.",
+    message: "'[COMMAND]' command expects a color. [COMMAND] which is [TYPE] was found.",
   },
   'hy-execting-condition': {
-    message: "'[NAME]' command expects a condition after it. [TYPE] was found.",
+    message: "'[COMMAND]' command expects a condition after it. [TYPE] was found.",
   },
   'hy-use-elseif-instead': {
     message: "Instead of 'else if' you should use 'elif' command.",
   },
   'hy-after-needs-list': {
-    message: "A list is expected after '[NAME]'.",
+    message: "A list is expected after '[COMMAND]'.",
   },
   'hy-before-needs-list': {
-    message: "A list is expected before '[NAME]'.",
+    message: "A list is expected before '[COMMAND]'.",
   },
   'hy-after-needs-nolist': {
-    message: "Lists are not allowed after '[NAME]'.",
+    message: "Lists are not allowed after '[COMMAND]'.",
   },
   'hy-before-needs-nolist': {
-    message: "Lists are not allowed before '[NAME]'.",
+    message: "Lists are not allowed before '[COMMAND]'.",
   },
   'hy-cant-print-list': {
     message: 'Lists cannot be printed directly.',
@@ -162,10 +162,10 @@ const errors = {
       "The correct format is 'add <item> to <list>' or 'remove <item> from <list>'. An item was expected but a list was found.",
   },
   'hy-pressed-must-be-second': {
-    message: "'[NAME]' command must be at the second position, after 'is'.",
+    message: "'[COMMAND]' command must be at the second position, after 'is'.",
   },
   'hy-turn-left-right': {
-    message: "'[NAME]' command only accepts 'left' or 'right' at this level.",
+    message: "'[COMMAND]' command only accepts 'left' or 'right' at this level.",
   },
   'hy-variabledef-multiplewords': {
     message: 'To define a variable you can only use one word.',
@@ -180,7 +180,7 @@ const errors = {
     message: 'At this level numbers are not yet allowed. Put quotes around it and it will be text.',
   },
   'hy-else-elif-needs-if': {
-    message: "'[NAME]' command expects that 'if' has been used previously.",
+    message: "'[COMMAND]' command expects that 'if' has been used previously.",
   },
   'hy-blanks-not-allowed': {
     message: 'Blank spaces must be filled with code!',
@@ -231,7 +231,7 @@ const errors = {
     message: "The command 'ask' must be inside a variable definition.",
   },
   'hy-pressed-needs-is': {
-    message: "'[NAME]' command doesn't work with '=', it only works with 'is' before it.",
+    message: "'[COMMAND]' command doesn't work with '=', it only works with 'is' before it.",
   },
   'hy-execting-parameter': {
     message: 'In a function definition, a valid parameter name is expected. [TYPE] was found.',
@@ -298,16 +298,16 @@ const errors = {
     message: "The definition of 'for' needs an 'in' instead of 'is'.",
   },
   'hy-bracket-open-needs-close': {
-    message: "'[NAME]' command expects the bracket to be closed.",
+    message: "'[COMMAND]' command expects the bracket to be closed.",
   },
   'hy-expecting-close': {
-    message: "'[NAME]' command expects '[VALUE]' at the end of the line.",
+    message: "'[COMMAND]' command expects [TYPE] at the end of the line.",
   },
   'hy-not-expecting-coma-final': {
     message: 'There cannot be an alone comma at the end',
   },
   'hy-missing-colon': {
-    message: "'[NAME]' command expects ':' at the end of the line.",
+    message: "'[COMMAND]' command expects ':' at the end of the line.",
   },
   'hy-refused-command-for-print': {
     message: 'This command cannot be printed directly.',
@@ -333,7 +333,28 @@ const errors = {
     message: "The [TYPE] '[NAME]' has been defined but is not being used anywhere.",
   },
   'hy-command-parenthesis-missing': {
-    message: "The command '[NAME]' needs parentheses '()' for its arguments.",
+    message: "The command '[COMMAND]' needs parentheses '()' for its arguments.",
+  },
+  'hy-execting-left-right': {
+    message: "The command '[COMMAND]' only accepts 'left' or 'right' after it.",
+  },
+  'hy-list-extra-element': {
+    message: 'Inside a list only elements separated by commas are allowed. An extra element without commas was found.',
+  },
+  'hy-unnecessary-parentheses': {
+    message: 'Parentheses should not be used in this command.',
+  },
+  'hy-unnecessary-comma': {
+    message: 'A comma is not necessary in this command.',
+  },
+  'hy-unnecessary-colon': {
+    message: 'Colons are not necessary at this level. Remove them.',
+  },
+  'hy-recomended-input': {
+    message: "It is recommended to use 'input' instead of 'ask'.",
+  },
+  'hy-recomended-def': {
+    message: "It is recommended to use 'def' instead of 'define'.",
   },
 }
 
@@ -371,7 +392,7 @@ export function type2text(type) {
     tipus = 'A function name'
   } else if (type.startsWith('entity_parameter')) {
     tipus = 'A parameter'
-  } else if (type.startsWith('entity_variable_value')) {
+  } else if (type.startsWith('entity_variable')) {
     tipus = 'A variable'
   } else if (type.startsWith('command')) {
     tipus = 'the command ' + command2text(type.replace('command_', ''))

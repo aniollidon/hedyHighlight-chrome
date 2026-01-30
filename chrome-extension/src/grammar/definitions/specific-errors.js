@@ -105,6 +105,18 @@ const specificHedyErrors = [
     codeerror: 'hy-recomended-equalequal',
   },
   {
+    commands: ['ask', 'ask1'],
+    levelStart: def.CMD_INPUT.start,
+    highlight: 'word',
+    codeerror: 'hy-recomended-input',
+  },
+  {
+    commands: ['define'],
+    levelStart: def.CMD_INPUT.start,
+    highlight: 'word',
+    codeerror: 'hy-recomended-def',
+  },
+  {
     commands: ['sum', 'rest', 'multiplication', 'division'],
     list: 'before',
     highlight: 'before_word',

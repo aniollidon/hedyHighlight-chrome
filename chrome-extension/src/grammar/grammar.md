@@ -112,3 +112,9 @@ Es poden imprimir llistes
 
 ## TODO IMPORTANT. A PARTIR DEL 13... falta bastant
 
+- Acceptar if var is paraula segona (strings conncatenats)
+- Acceptar amb warnings print( "bla" "bla" ) # SENSE COMES!
+- Acceptar amb warnings print "bla", "bla" # SENSE ()!
+- Error o warning a l'espai entre `a is[1,2,3]`
+- Aquest codi? `a is [1,2,3] ## a is a[2]`
+- Comandes que funcionen però estàn deprecades

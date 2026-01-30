@@ -10,9 +10,7 @@ const texts = {
 const commands = {
   compare_is: 'is (comparació)',
   variable_define_is: 'is (definició de variable)',
-  comma_list: 'coma (llista)',
-  comma_bracedlist: 'coma (llista[])',
-  comma_tuple: 'coma (dins de parèntesis)',
+  comma: 'coma',
   to_list: 'to (llista)',
   to_range: 'to (després de range)',
   compare_equal: 'igual (comparació)',
@@ -28,16 +26,17 @@ const commands = {
   less_than_or_equal: 'menor o igual (<=)',
   compare_equalequal: 'igual (==)',
   not_equal: 'diferent (!=)',
-  parenthesis_open: "un parèntesi obert '('",
-  parenthesis_close: "un parèntesi tancat ')'",
+  parenthesis_open: "parèntesi obert '('",
+  parenthesis_close: "parèntesi tancat ')'",
+  colon: "dos punts ':'",
 }
 
 const errors = {
   'hy-command-context': {
-    message: "La comanda '[NAME]' no es pot fer servir d'aquesta manera.",
+    message: "La comanda '[COMMAND]' no es pot fer servir d'aquesta manera.",
   },
   'hy-type-context': {
-    message: "El text '[NAME]' que és [TYPE] no es pot fer servir d'aquesta manera.",
+    message: "El text '[COMMAND]' que és [TYPE] no es pot fer servir d'aquesta manera.",
   },
   'hy-recomended-equal': {
     message: "És més recomanable fer servir '=' enlloc de 'is'.",
@@ -49,31 +48,31 @@ const errors = {
     message: "Aquest text hauria d'anar entre cometes. Potser és una variable mal definida?",
   },
   'hy-recomended-equalequal': {
-    message: "En aquest nivell ja es pot fer servir '==' enlloc de '[NAME]'.",
+    message: "En aquest nivell ja es pot fer servir '==' enlloc de '[COMMAND]'.",
   },
   'hy-entity-changes-content-type': {
     message: "Vigila que la variable '[NAME]' ha canviat el tipus a respecte la seva definició a la línia [LINEDEF].",
   },
   'hy-at-begining': {
-    message: "La comanda '[NAME]' ha d'anar al començament.",
+    message: "La comanda '[COMMAND]' ha d'anar al començament.",
   },
   'hy-command-missing-argument': {
-    message: "La comanda '[NAME]' necessita almenys un argument després.",
-    messagePlural: "La comanda '[NAME]' necessita [VALUE] arguments després.",
-    messageZero: "La comanda '[NAME]' no necessita arguments.",
+    message: "La comanda '[COMMAND]' necessita almenys un argument després.",
+    messagePlural: "La comanda '[COMMAND]' necessita [VALUE] arguments després.",
+    messageZero: "La comanda '[COMMAND]' no necessita arguments.",
   },
   'hy-command-missing-argument-before': {
-    message: "La comanda '[NAME]' necessita un argument abans.",
-    messagePlural: "La comanda '[NAME]' necessita [VALUE] arguments abans.",
-    messageZero: "La comanda '[NAME]' no necessita arguments abans.",
+    message: "La comanda '[COMMAND]' necessita un argument abans.",
+    messagePlural: "La comanda '[COMMAND]' necessita [VALUE] arguments abans.",
+    messageZero: "La comanda '[COMMAND]' no necessita arguments abans.",
   },
   'hy-command-unexpected-argument': {
-    message: "La comanda '[NAME]' només accepta un argument després.",
-    messagePlural: "La comanda '[NAME]' només accepta [VALUE] arguments després.",
-    messageZero: "La comanda '[NAME]' no accepta cap valor després.",
+    message: "La comanda '[COMMAND]' només accepta un argument després.",
+    messagePlural: "La comanda '[COMMAND]' només accepta [VALUE] arguments després.",
+    messageZero: "La comanda '[COMMAND]' no accepta cap valor després.",
   },
   'hy-command-unexpected-argument-conditional': {
-    message: "La comanda '[NAME]' només accepta una condició després.",
+    message: "La comanda '[COMMAND]' només accepta una condició després.",
   },
   'hy-execting-function-definition': {
     message:
@@ -86,10 +85,10 @@ const errors = {
     message: "Després d'una coma hi ha d'haver un element.",
   },
   'hy-level-unavailable-yet': {
-    message: "La comanda '[NAME]' encara no es pot fer servir en aquest nivell.",
+    message: "La comanda '[COMMAND]' encara no es pot fer servir en aquest nivell.",
   },
   'hy-level-unavailable-deprecated': {
-    message: "La comanda '[NAME]' ja no es pot fer servir en aquest nivell.",
+    message: "La comanda '[COMMAND]' ja no es pot fer servir en aquest nivell.",
   },
   'hy-to-lowercase-command': {
     message: "Potser volies utilitzar la comanda '[LOWER]'?, si és així ha d'estar tota en minúscules.",
@@ -111,44 +110,44 @@ const errors = {
     message: 'No té massa sentit comparar dos cops el mateix. Sempre serà fals.',
   },
   'hy-execting-same-type': {
-    message: "La comanda '[NAME]' espera el mateix tipus abans i després.",
+    message: "La comanda '[COMMAND]' espera el mateix tipus abans i després.",
   },
   'hy-execting-number': {
-    message: "La comanda '[NAME]' espera un número. S'ha trobat [TYPE].",
+    message: "La comanda '[COMMAND]' espera un número. S'ha trobat [TYPE].",
   },
   'hy-execting-number-integer': {
-    message: "La comanda '[NAME]' espera un número enter. S'ha trobat [TYPE].",
+    message: "La comanda '[COMMAND]' espera un número enter. S'ha trobat [TYPE].",
   },
   'hy-execting-command-times': {
     message:
-      "La comanda '[NAME]' espera un número enter i després la comanda 'times'. S'ha trobat [TYPE] a la segona posició.",
+      "La comanda '[COMMAND]' espera un número enter i després la comanda 'times'. S'ha trobat [TYPE] a la segona posició.",
   },
   'hy-execting-number-string': {
-    message: "La comanda '[NAME]' espera números o text. S'ha trobat [TYPE].",
+    message: "La comanda '[COMMAND]' espera números o text. S'ha trobat [COMMAND] que és [TYPE].",
   },
   'hy-execting-number-note': {
-    message: "La comanda '[NAME]' espera una nota o un número. S'ha trobat [TYPE].",
+    message: "La comanda '[COMMAND]' espera una nota o un número. S'ha trobat [COMMAND] que és [TYPE].",
   },
   'hy-execting-color': {
-    message: "La comanda '[NAME]' espera un color. S'ha trobat [TYPE].",
+    message: "La comanda '[COMMAND]' espera un color. S'ha trobat [COMMAND] que és [TYPE].",
   },
   'hy-execting-condition': {
-    message: "La comanda '[NAME]' espera una condició després. S'ha trobat [TYPE].",
+    message: "La comanda '[COMMAND]' espera una condició després. S'ha trobat [TYPE].",
   },
   'hy-use-elseif-instead': {
     message: "Si després d'un 'else' vols fer 'if', utilitza la comanda 'elif'.",
   },
   'hy-after-needs-list': {
-    message: "Després de '[NAME]' cal una llista.",
+    message: "Després de '[COMMAND]' cal una llista.",
   },
   'hy-before-needs-list': {
-    message: "Abans de '[NAME]' cal una llista.",
+    message: "Abans de '[COMMAND]' cal una llista.",
   },
   'hy-after-needs-nolist': {
-    message: "Després de '[NAME]' no pot haver-hi una llista.",
+    message: "Després de '[COMMAND]' no pot haver-hi una llista.",
   },
   'hy-before-needs-nolist': {
-    message: "Abans de '[NAME]' no pot haver-hi una llista.",
+    message: "Abans de '[COMMAND]' no pot haver-hi una llista.",
   },
   'hy-cant-print-list': {
     message: 'Les llistes no es poden imprimir directament.',
@@ -164,10 +163,10 @@ const errors = {
       "El format correcte és 'add <item> to <llista>' o 'remove <item> from <llista>'. No pot haver-hi una llista al lloc de l'item.",
   },
   'hy-pressed-must-be-second': {
-    message: "La comanda '[NAME]' ha d'anar en segona posició, després de 'is'.",
+    message: "La comanda '[COMMAND]' ha d'anar en segona posició, després de 'is'.",
   },
   'hy-turn-left-right': {
-    message: "La comanda '[NAME]' només accepta 'left' o 'right' en aquest nivell.",
+    message: "La comanda '[COMMAND]' només accepta 'left' o 'right' en aquest nivell.",
   },
   'hy-variabledef-multiplewords': {
     message: 'Per definir una variable només pots fer servir una paraula.',
@@ -182,7 +181,7 @@ const errors = {
     message: 'En aquest nivell els números encara no estan permesos. Posa-hi cometes i serà un text.',
   },
   'hy-else-elif-needs-if': {
-    message: "La comanda '[NAME]' espera que s'hagi usat 'if' anteriorment.",
+    message: "La comanda '[COMMAND]' espera que s'hagi usat 'if' anteriorment.",
   },
   'hy-blanks-not-allowed': {
     message: "Els espais en blanc s'han d'omplir amb codi!",
@@ -233,7 +232,7 @@ const errors = {
     message: "La comanda 'ask' ha d'anar dins d'una definició de variable.",
   },
   'hy-pressed-needs-is': {
-    message: "La comanda '[NAME]' no funciona amb '=', només funciona amb un 'is' davant.",
+    message: "La comanda '[COMMAND]' no funciona amb '=', només funciona amb un 'is' davant.",
   },
   'hy-execting-parameter': {
     message: "En la definició d'una funció s'espera un nom de paràmetre vàlid. S'ha trobat [TYPE].",
@@ -301,16 +300,16 @@ const errors = {
     message: "La definició de 'for' necessita un 'in' enlloc de 'is'.",
   },
   'hy-bracket-open-needs-close': {
-    message: "La comanda '[NAME]' espera que es tanqui el claudàtor.",
+    message: "La comanda '[COMMAND]' espera que es tanqui el claudàtor.",
   },
   'hy-expecting-close': {
-    message: "La comanda '[NAME]' espera '[VALUE]' al final de línia.",
+    message: "La comanda '[COMMAND]' espera [TYPE] al final de línia.",
   },
   'hy-not-expecting-coma-final': {
     message: 'No pot haver-hi una coma sola al final',
   },
   'hy-missing-colon': {
-    message: "La comanda '[NAME]' espera ':' al final de la línia.",
+    message: "La comanda '[COMMAND]' espera ':' al final de la línia.",
   },
   'hy-refused-command-for-print': {
     message: 'Aquesta comanda no es pot imprimir directament.',
@@ -332,10 +331,32 @@ const errors = {
     message: "L'acció ha d'estar en la mateixa frase que el bucle o condició. No pot haver-hi un salt de línia.",
   },
   'hy-entity-not-used': {
-    message: "La [TYPE] '[NAME]' s'ha definit però no s'està fent servir enlloc.",
+    message: "S'ha definit [TYPE] anomenada '[NAME]' que no s'està fent servir.",
   },
   'hy-command-parenthesis-missing': {
-    message: "La comanda '[NAME]' necessita parèntesis '()' per als seus arguments.",
+    message: "La comanda '[COMMAND]' necessita parèntesis '()' per als seus arguments.",
+  },
+  'hy-execting-left-right': {
+    message: "La comanda '[COMMAND]' només accepta 'left' o 'right' després.",
+  },
+  'hy-list-extra-element': {
+    message:
+      "Dins una llista només es poden posar elements separats per comes. S'ha trobat un element extra sense comes.",
+  },
+  'hy-unnecessary-parentheses': {
+    message: "Els parèntesis no s'han de fer servir en aquesta comanda.",
+  },
+  'hy-unnecessary-comma': {
+    message: 'No cal fer servir una coma en aquesta comanda.',
+  },
+  'hy-unnecessary-colon': {
+    message: "En aquest nivell encara no calen els dos punts. Elimina'ls.",
+  },
+  'hy-recomended-input': {
+    message: "Es recomana fer servir 'input' enlloc de 'ask'.",
+  },
+  'hy-recomended-def': {
+    message: "Es recomana fer servir 'def' enlloc de 'define'.",
   },
 }
 
@@ -373,7 +394,7 @@ export function type2text(type) {
     tipus = 'un nom de funció'
   } else if (type.startsWith('entity_parameter')) {
     tipus = 'un paràmetre'
-  } else if (type.startsWith('entity_variable_value')) {
+  } else if (type.startsWith('entity_variable')) {
     tipus = 'una variable'
   } else if (type.startsWith('command')) {
     tipus = 'la comanda ' + command2text(type.replace('command_', ''))

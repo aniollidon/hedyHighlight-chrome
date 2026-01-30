@@ -57,10 +57,10 @@ export const BOOLEANS = new OnLevel(13)
 export const PRINT_BOOLEANS = new OnLevel(15)
 
 export const FUNCIONS = new OnLevel(12)
-export const FUNCTIONS_DEFINE_CALL = new OnLevel(FUNCIONS.start, 12)
+export const FUNCTIONS_PYTHON = new OnLevel(13)
+export const FUNCTIONS_DEFINE_CALL = new OnLevel(FUNCIONS.start, FUNCTIONS_PYTHON.before())
 export const FUNCTIONS_WITH = OnLevel.deprecated() // DEPRECATED NO USAR
-export const FUNCTION_BRACED = new OnLevel(13)
-export const RETURN_FUNCTION = new OnLevel(13)
+export const RETURN_FUNCTION = FUNCTIONS_PYTHON
 
 export const PRINT_LIST = new OnLevel(13)
 export const COMPARE_OPERATORS = new OnLevel(13)
@@ -70,7 +70,7 @@ export const CMD_TURN_ANGLE = new OnLevel(2)
 export const CMD_SLEEP = new OnLevel(2)
 export const CMD_ASK_NOIS = new OnLevel(1, 1)
 export const CMD_ECHO = new OnLevel(1, 1)
-export const CMD_ASK_IS = new OnLevel(2, 12)
+export const CMD_ASK_IS = new OnLevel(2) // Es depreca al 13
 export const CMD_COMMA = new OnLevel(3)
 export const CMD_INPUT = new OnLevel(13)
 export const CMD_IS = new OnLevel(2)

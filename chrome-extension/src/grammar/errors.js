@@ -4,6 +4,8 @@ const severityAndPriority = {
   'hy-type-context': { severity: 'error', priority: 0 },
   'hy-recomended-equal': { severity: 'info', priority: 0 },
   'hy-recomended-equalequal': { severity: 'info', priority: 0 },
+  'hy-recomended-input': { severity: 'info', priority: 0 },
+  'hy-recomended-def': { severity: 'info', priority: 0 },
   'hy-entity-changes-content-type': { severity: 'info', priority: 0 },
   'hy-lines-must-start-with': { severity: 'error', priority: 1 },
   'hy-else-elif-needs-if': { severity: 'error', priority: 1 },
@@ -20,7 +22,7 @@ const severityAndPriority = {
   'hy-function-unexpected-argument': { severity: 'error', priority: 3 },
   'hy-command-missing-argument-comma': { severity: 'error', priority: 4 },
   'hy-ask-not-in-definition': { severity: 'error', priority: 4 },
-  'hy-entity-not-used': { severity: 'warning', priority: 4 },
+  'hy-entity-not-used': { severity: 'info', priority: 4 },
   'hy-text-must-be-quoted': { severity: 'error', priority: 4 },
   'hy-command-context': { severity: 'error', priority: 5 },
   'hy-refused-function-void': { severity: 'error', priority: 5 },
@@ -42,9 +44,11 @@ const severityAndPriority = {
   'hy-execting-command-times': { severity: 'error', priority: 10 },
   'hy-execting-number-note': { severity: 'error', priority: 10 },
   'hy-execting-color': { severity: 'error', priority: 10 },
+  'hy-execting-left-right': { severity: 'error', priority: 10 },
   'hy-execting-condition': { severity: 'error', priority: 10 },
   'hy-list-definition-types': { severity: 'error', priority: 10 },
   'hy-list-access-types': { severity: 'error', priority: 10 },
+  'hy-list-extra-element': { severity: 'error', priority: 10 },
   'hy-bracket-needs-before-list': { severity: 'warning', priority: 10 },
   'hy-use-elseif-instead': { severity: 'warning', priority: 10 },
   'hy-execting-function-definition': { severity: 'error', priority: 10 },
@@ -90,12 +94,15 @@ const severityAndPriority = {
   'hy-identation-misalignment': { severity: 'error', priority: 254 },
   'hy-identation-multiple-unavailable': { severity: 'error', priority: 254 },
   'hy-unnecessary-quotes': { severity: 'info', priority: 255 },
+  'hy-unnecessary-parentheses': { severity: 'error', priority: 255 },
+  'hy-unnecessary-comma': { severity: 'error', priority: 255 },
+  'hy-unnecessary-colon': { severity: 'error', priority: 255 },
   'hy-list-open-needs-close': { severity: 'error', priority: 254 },
   'hy-bracket-open-needs-close': { severity: 'error', priority: 254 },
   'hy-parenthesis-open-needs-close': { severity: 'error', priority: 254 },
   'hy-expecting-close': { severity: 'error', priority: 254 },
   'hy-not-expecting-coma-final': { severity: 'error', priority: 254 },
-  'hy-missing-colon': { severity: 'error', priority: 254 },
+  'hy-missing-colon': { severity: 'info', priority: 254 },
   'hy-blanks-not-allowed': { severity: 'error', priority: 255 },
   'hy-string-must-end-with-quotes': { severity: 'error', priority: 255 },
 }
@@ -125,6 +132,7 @@ class HHError {
 
   _process_messsage(message) {
     message = message.replace('[NAME]', this.onText)
+    message = message.replace('[COMMAND]', this.command ? this.command : this.onText)
     message = message.replace('[LOWER]', this.onText.toLowerCase())
     message = message.replace('[LINE]', this.line + 1)
 
@@ -190,6 +198,13 @@ class HHErrorType extends HHError {
   }
 }
 
+class HHErrorArgument extends HHErrorType {
+  constructor(onText, errorCode, start, end, line, type, command) {
+    super(onText, errorCode, start, end, line, type)
+    this.command = command
+  }
+}
+
 class HHErrorLineDef extends HHError {
   constructor(onText, errorCode, start, end, line, lineDef) {
     super(onText, errorCode, start, end, line)
@@ -203,4 +218,4 @@ class HHErrorLineDef extends HHError {
   }
 }
 
-export { HHError, HHErrorVal, HHErrorVals, HHErrorType, HHErrorLineDef }
+export { HHError, HHErrorVal, HHErrorVals, HHErrorType, HHErrorArgument, HHErrorLineDef }
