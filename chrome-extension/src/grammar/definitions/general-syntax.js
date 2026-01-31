@@ -85,6 +85,11 @@ const hedyGeneralSyntax = [
     codeerror: 'hy-identation-not-expected-yet',
     highlight: 'identation',
   },
+
+  {
+    refused: ['constant_color_language'],
+    codeerror: 'hy-recomended-english-color-names',
+  },
 ]
 
 export { hedyGeneralSyntax }

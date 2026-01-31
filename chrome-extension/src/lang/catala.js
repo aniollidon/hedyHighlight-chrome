@@ -7,6 +7,7 @@ const texts = {
   no: 'No',
 }
 
+const colors = ['negre', 'blau', 'marró', 'gris', 'verd', 'taronja', 'rosa', 'lila', 'vermell', 'blanc', 'groc']
 const commands = {
   compare_is: 'is (comparació)',
   variable_define_is: 'is (definició de variable)',
@@ -71,6 +72,10 @@ const errors = {
     messagePlural: "La comanda '[COMMAND]' només accepta [VALUE] arguments després.",
     messageZero: "La comanda '[COMMAND]' no accepta cap valor després.",
   },
+  'hy-definition-unexpected-argument': {
+    message:
+      "En una definició de variable només s'accepta un element. Si vols una llista, separa els elements amb comes.",
+  },
   'hy-command-unexpected-argument-conditional': {
     message: "La comanda '[COMMAND]' només accepta una condició després.",
   },
@@ -123,13 +128,13 @@ const errors = {
       "La comanda '[COMMAND]' espera un número enter i després la comanda 'times'. S'ha trobat [TYPE] a la segona posició.",
   },
   'hy-execting-number-string': {
-    message: "La comanda '[COMMAND]' espera números o text. S'ha trobat [COMMAND] que és [TYPE].",
+    message: "La comanda '[COMMAND]' espera números o text. S'ha trobat '[NAME]' que és [TYPE].",
   },
   'hy-execting-number-note': {
-    message: "La comanda '[COMMAND]' espera una nota o un número. S'ha trobat [COMMAND] que és [TYPE].",
+    message: "La comanda '[COMMAND]' espera una nota o un número. S'ha trobat '[NAME]' que és [TYPE].",
   },
   'hy-execting-color': {
-    message: "La comanda '[COMMAND]' espera un color. S'ha trobat [COMMAND] que és [TYPE].",
+    message: "La comanda '[COMMAND]' espera un color. S'ha trobat '[NAME]' que és [TYPE].",
   },
   'hy-execting-condition': {
     message: "La comanda '[COMMAND]' espera una condició després. S'ha trobat [TYPE].",
@@ -358,6 +363,9 @@ const errors = {
   'hy-recomended-def': {
     message: "Es recomana fer servir 'def' enlloc de 'define'.",
   },
+  'hy-recomended-english-color-names': {
+    message: 'Es recomana utilitzar els noms de colors en anglès.',
+  },
 }
 
 export function command2text(command) {
@@ -431,4 +439,8 @@ export function error2text(errorcode) {
 export function getText(code) {
   if (texts[code]) return texts[code]
   return code
+}
+
+export function isColor(name) {
+  return colors.includes(name.toLowerCase())
 }

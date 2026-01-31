@@ -356,7 +356,8 @@ const commandDefinition = [
     text: ',',
     name: 'comma',
     levelStart: def.CMD_COMMA.start,
-    argumentsAfter: 1,
+    minArgumentsAfter: 1,
+    concatOn: ['comma'],
   },
   {
     text: 'remove',

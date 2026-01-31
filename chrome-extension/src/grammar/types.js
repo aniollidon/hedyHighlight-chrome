@@ -1,4 +1,4 @@
-import { entreCometes } from '../utils.js'
+import lang from '../lang/lang.js'
 
 export function detectTypeConstant(text, hasNumbers = true, hasBooleans = false) {
   const word = text.trim()
@@ -16,6 +16,9 @@ export function detectTypeConstant(text, hasNumbers = true, hasBooleans = false)
 
   // Pot ser un color
   if (word.match(/\b(blue|green|red|black|brown|gray|orange|pink|purple|white|yellow)\b/)) return 'color'
+
+  // Pot ser un color segons l'idioma
+  if (lang.isColor(word)) return 'color_language'
 
   // Si comença i acaba per cometes és un string
   if ((word.startsWith('"') && word.endsWith('"')) || (word.startsWith("'") && word.endsWith("'")))

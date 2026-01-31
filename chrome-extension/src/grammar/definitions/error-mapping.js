@@ -6,6 +6,11 @@ const errorMapping = [
   },
   {
     codeerror: 'hy-command-unexpected-argument',
+    on: ['is', '='], // TODO hauria de ser definition_equal i definition_is
+    to: 'hy-definition-unexpected-argument',
+  },
+  {
+    codeerror: 'hy-command-unexpected-argument',
     on: ['['], // TODO hauria de ser bracket_open_access
     to: 'hy-list-extra-element',
   },

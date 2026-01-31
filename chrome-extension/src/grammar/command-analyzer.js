@@ -106,7 +106,17 @@ export class HedyCommandAnalyzer {
     return words
   }
 
-  checkCommandArguments(sintagma, commandWord, commandDef, commandPosSig, startCh, endCh, lineNumber) {
+  checkCommandArguments(
+    sintagma,
+    commandWord,
+    commandDef,
+    commandPosSig,
+    startCh,
+    endCh,
+    lineNumber,
+    byconcat = false,
+  ) {
+    // DEBUG
     let errorsFound = []
     let endArgsPos = endCh
     let startArgsPos = startCh
@@ -123,25 +133,27 @@ export class HedyCommandAnalyzer {
             ? commandDef.argumentsAfter
             : [commandDef.argumentsAfter]
 
-      const argsMin = Math.min(...argumentsAfter)
-      const argsMax = Math.max(...argumentsAfter)
+      let argsMin = Math.min(...argumentsAfter)
+      let argsMax = Math.max(...argumentsAfter)
       endArgsMin = startCh + argsMin
       endArgsMax = startCh + argsMax
 
       if (commandDef.minArgumentsAfter !== undefined) {
         endArgsMin = startCh + commandDef.minArgumentsAfter
         endArgsMax = sintagma.size() // Trick to avoid for loop unexpected-argument
+        argsMin = commandDef.minArgumentsAfter
       }
 
       endArgsPos = endArgsMax
 
-      if (endCh < endArgsMin) {
+      if (!byconcat && endCh < endArgsMin) {
+        // Només comprovem quan no és una concatenació
         errorsFound.push(
           new HHErrorVal(
             commandWord.text,
             'hy-command-missing-argument',
-            commandWord.start,
-            commandWord.end,
+            commandWord.pos,
+            commandWord.pos + commandWord.text.length,
             lineNumber,
             argsMin, // nombre mínim d'arguments
           ),
@@ -155,7 +167,16 @@ export class HedyCommandAnalyzer {
         // Exceptuant l'element de concatOn
         if (commandDef.concatOn && sintagma.get(j).command && sintagma.get(j).command.includes(commandDef.concatOn)) {
           errorsFound = errorsFound.concat(
-            this.checkCommandArguments(sintagma, commandWord, commandDef, commandPosSig, j + 1, endCh, lineNumber),
+            this.checkCommandArguments(
+              sintagma,
+              commandWord,
+              commandDef,
+              commandPosSig,
+              j + 1,
+              endCh,
+              lineNumber,
+              true,
+            ),
           )
           break
         } else
@@ -172,8 +193,8 @@ export class HedyCommandAnalyzer {
       }
     }
 
-    // S'han de comprovar els arguments abans de la comanda
-    if (commandDef.argumentsBefore !== undefined) {
+    // S'han de comprovar els arguments abans de la comanda, només si no és per concatOn
+    if (!byconcat && commandDef.argumentsBefore !== undefined) {
       if (commandPosSig < commandDef.argumentsBefore) {
         errorsFound.push(
           new HHErrorVal(
@@ -250,8 +271,8 @@ export class HedyCommandAnalyzer {
           new HHError(
             commandWord.text,
             'hy-command-parenthesis-missing',
-            commandWord.start,
-            commandWord.end,
+            commandWord.pos,
+            commandWord.pos + commandWord.text.length,
             lineNumber,
           ),
         )
