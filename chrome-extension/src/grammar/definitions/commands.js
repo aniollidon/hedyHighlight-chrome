@@ -547,7 +547,7 @@ const commandDefinition = [
   {
     text: 'times',
     levelStart: def.CMD_REPEAT.start,
-    hasBefore: /^repeat [\p{L}_\d]+/gu,
+    hasBefore: /^repeat .*/gu,
     argumentsAfter: 0,
   },
   {

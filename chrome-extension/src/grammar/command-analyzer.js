@@ -238,7 +238,7 @@ export class HedyCommandAnalyzer {
             break // Stop checking if it's a concatOn command
 
           if (rule.positionInSintagma !== undefined && rule.positionInSintagma !== commandPosSig) continue
-          if (rule.position !== undefined && rule.position !== j - startArgsPos) continue
+          if (rule.position !== undefined && rule.position !== j - startArgsPos + 1) continue
           if (rule.refused && !validType(arg.tag, rule.refused)) continue
           if (rule.allowed && validType(arg.tag, rule.allowed)) continue
 

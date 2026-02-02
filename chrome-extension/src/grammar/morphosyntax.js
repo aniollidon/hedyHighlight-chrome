@@ -548,7 +548,37 @@ function detectMath(tokens) {
   return result
 }
 
-function detectMorpho(words, hasAtRandom, hasFunctions, hasRange) {
+function addRawOnStrings(tokens, rawLine) {
+  for (const token of tokens) {
+    if (token.constant && token.constant.startsWith('string')) {
+      if (token.pos !== undefined) {
+        if (token.end === undefined) {
+          token.end = token.pos + token.text.length
+        }
+        token.raw = rawLine.substring(token.pos, token.end)
+
+        // Encara que no hi siguin al nivell, marca com a quoted si tenen cometes
+        if (
+          (token.raw.startsWith('"') && token.raw.endsWith('"')) ||
+          (token.raw.startsWith("'") && token.raw.endsWith("'"))
+        ) {
+          if (token.constant === 'string_unquoted') {
+            token.constant = 'string_quoted'
+            token.tag = 'constant_string_quoted'
+          }
+          token.raw = token.raw.slice(1, -1)
+        }
+
+        continue // No mirem subphrases dels strings
+      }
+    }
+    if (token.subphrase) {
+      token.subphrase = addRawOnStrings(token.subphrase, rawLine)
+    }
+  }
+  return tokens
+}
+function detectMorpho(words, hasAtRandom, hasFunctions, hasRange, rawLine) {
   words = detectNegatives(words)
   words = detectUnquotedStrings(words)
   words = detectBracedList(words)
@@ -560,6 +590,9 @@ function detectMorpho(words, hasAtRandom, hasFunctions, hasRange) {
   words = detectAndOr(words)
   words = detectPrintUsages(words)
   words = detectDeclarations(words)
+
+  // Postprocess
+  words = addRawOnStrings(words, rawLine)
 
   return words
 }

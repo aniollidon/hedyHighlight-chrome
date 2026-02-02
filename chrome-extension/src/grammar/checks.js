@@ -44,9 +44,65 @@ class CheckHedy {
     const errors = this._analysePhrase(lineTrim, identationLength, lineNumber)
     return this._processErrors(errors, line, lineNumber)
   }
-
   _analysePhrase(lineTrim, identationLength, lineNumber) {
-    // TODO: DEPRECATED
+    // TODO: DEPRECAR I MILLORAR IMPLEMENTACIÓ, SEPARAR PER COMANDES AT BEGINING?
+    let errorsFound = []
+    // mira si es un bucle inline
+    const bucle = this._bucleInline ? bucleInlineRegex.exec(lineTrim) : null
+
+    // Mira si és un condicional
+    const condicional = this._conditionalInline ? condicionalInlineRegex.exec(lineTrim) : null
+
+    // Mira si és un else inline
+    const elseInline = this._conditionalInline ? condicionalElseInlineRegex.exec(lineTrim) : null
+
+    if (bucle !== null) {
+      const bucledef = bucle[1]
+      const action = bucle[3]
+
+      let res = this._analyseSintagma(bucledef, identationLength, lineNumber)
+      errorsFound = errorsFound.concat(res)
+
+      const innerIdentation = identation(action)
+      res = this._analysePhrase(action.trim(), innerIdentation + identationLength + bucledef.length, lineNumber)
+      errorsFound = errorsFound.concat(res)
+    } else if (condicional !== null) {
+      const condition = condicional[1]
+      const action = condicional[5]
+
+      let res = this._analyseSintagma(condition, identationLength, lineNumber)
+      errorsFound = errorsFound.concat(res)
+
+      const innerIdentation = identation(action)
+      res = this._analysePhrase(action.trim(), innerIdentation + identationLength + condition.length, lineNumber)
+      errorsFound = errorsFound.concat(res)
+    } else if (elseInline !== null) {
+      const actionif = elseInline[1]
+      const elseword = elseInline[2]
+      const actionelse = elseInline[3]
+
+      let res = this._analysePhrase(actionif, identationLength, lineNumber)
+      errorsFound = errorsFound.concat(res)
+
+      res = this._analyseSintagma(elseword, identationLength + actionif.length, lineNumber)
+      errorsFound = errorsFound.concat(res)
+
+      const innerIdentation = identation(actionelse)
+      res = this._analysePhrase(
+        actionelse.trim(),
+        innerIdentation + identationLength + actionif.length + elseword.length,
+        lineNumber,
+      )
+      errorsFound = errorsFound.concat(res)
+    } else {
+      return this._analyseSintagma(lineTrim, identationLength, lineNumber)
+    }
+
+    return errorsFound
+  }
+
+  __analysePhrase(lineTrim, identationLength, lineNumber) {
+    // TODO: DEPRECAR I MILLORAR IMPLEMENTACIÓ, SEPARAR PER COMANDES AT BEGINING?
     let errorsFound = []
     // mira si es un bucle inline
     const bucle = this._bucleInline ? bucleInlineRegex.exec(lineTrim) : null
@@ -146,7 +202,7 @@ class CheckHedy {
       }
     }
 
-    const wordsTagged = this._tagWords(words, identationLength, lineNumber)
+    const wordsTagged = this._tagWordsAndMorpho(words, identationLength, lineNumber, lineTrim)
     const sintagma = this.memory.newSintagma(wordsTagged, identationLength, lineNumber)
 
     let errors = this._searchMorphosyntacticErrors(sintagma, lineNumber)
@@ -163,7 +219,7 @@ class CheckHedy {
     return errorsFound
   }
 
-  _tagWords(words, identationLength, lineNumber) {
+  _tagWordsAndMorpho(words, identationLength, lineNumber, rawLine) {
     // suma la identació a la posició de les paraules
     for (let i = 0; i < words.length; i++) {
       words[i].pos += identationLength
@@ -195,7 +251,7 @@ class CheckHedy {
         }
         words[i].command = undefined
       } else if (words[i].type !== 'command') {
-        const constant = detectTypeConstant(text, true, this._booleans)
+        const constant = detectTypeConstant(text, true, this._booleans, this._usesCometesText)
 
         if (entity !== undefined) {
           words[i].type = 'entity_' + entity.type
@@ -215,7 +271,7 @@ class CheckHedy {
     }
 
     // Processa la frase per trobar operacions
-    words = detectMorpho(words, this._atrandom, this._functions, this._range)
+    words = detectMorpho(words, this._atrandom, this._functions, this._range, rawLine)
 
     return words
   }

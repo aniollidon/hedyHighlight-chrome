@@ -1,6 +1,6 @@
 import lang from '../lang/lang.js'
 
-export function detectTypeConstant(text, hasNumbers = true, hasBooleans = false) {
+export function detectTypeConstant(text, hasNumbers = true, hasBooleans = false, hasCometes = true) {
   const word = text.trim()
 
   if (hasBooleans && (word === 'true' || word === 'false' || word === 'True' || word === 'False')) return 'boolean'
@@ -21,7 +21,7 @@ export function detectTypeConstant(text, hasNumbers = true, hasBooleans = false)
   if (lang.isColor(word)) return 'color_language'
 
   // Si comença i acaba per cometes és un string
-  if ((word.startsWith('"') && word.endsWith('"')) || (word.startsWith("'") && word.endsWith("'")))
+  if (hasCometes && ((word.startsWith('"') && word.endsWith('"')) || (word.startsWith("'") && word.endsWith("'"))))
     return 'string_quoted'
   else if (word === '_') return 'blank'
   else return 'string_unquoted'
