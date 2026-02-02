@@ -8,11 +8,6 @@ import { validType, compareTypes, detectTypeConstant } from './types.js'
 import * as def from './definitions/definitions.js'
 import { HedyCommandAnalyzer } from './command-analyzer.js'
 
-const condicionalInlineRegex =
-  /^(if +([\p{L}_\d]+) *( is | in |=|==|<|>|!=|<=|>=| not +in ) *(".*"|[\p{L}_\d]+) *:? |else )+(.*)$/u
-const condicionalElseInlineRegex = /(.* )(else) (.*)/
-const bucleInlineRegex = /^(repeat +([\p{L}_\d]+) +times +)(.*)$/u
-
 class CheckHedy {
   constructor(level) {
     this.memory = new Memory(level)
@@ -41,125 +36,44 @@ class CheckHedy {
     const identationLength = identation(line)
     const lineTrim = line.trim()
     if (lineTrim === '') return []
-    const errors = this._analysePhrase(lineTrim, identationLength, lineNumber)
+    let words = separarParaules(lineTrim)
+    const errors = this._analysePhrase(words, 0, identationLength, lineNumber, lineTrim)
     return this._processErrors(errors, line, lineNumber)
   }
-  _analysePhrase(lineTrim, identationLength, lineNumber) {
-    // TODO: DEPRECAR I MILLORAR IMPLEMENTACIÓ, SEPARAR PER COMANDES AT BEGINING?
+  _analysePhrase(words, sintagmaStart, identationLength, lineNumber, lineTrim) {
     let errorsFound = []
-    // mira si es un bucle inline
-    const bucle = this._bucleInline ? bucleInlineRegex.exec(lineTrim) : null
 
-    // Mira si és un condicional
-    const condicional = this._conditionalInline ? condicionalInlineRegex.exec(lineTrim) : null
+    let k = 1
+    while (k < words.length) {
+      // Cerca només si no és la primera paraula
+      const word = words[k]
 
-    // Mira si és un else inline
-    const elseInline = this._conditionalInline ? condicionalElseInlineRegex.exec(lineTrim) : null
+      // si la word és una comanda d'inici de línia (text, ja que no encara no està etiquetat com a comanda
+      if (this.commandsSyntax.cmdAtBegining.includes(word.text)) {
+        // Analitza sintagma abans de la comanda
+        const priorWords = words.slice(0, k)
+        const posInTrim = word.pos - identationLength
+        const priorLine = lineTrim.substring(0, posInTrim)
+        let res = this._analyseSintagma(priorWords, sintagmaStart, identationLength, lineNumber, priorLine)
+        errorsFound = errorsFound.concat(res)
 
-    if (bucle !== null) {
-      const bucledef = bucle[1]
-      const action = bucle[3]
-
-      let res = this._analyseSintagma(bucledef, identationLength, lineNumber)
-      errorsFound = errorsFound.concat(res)
-
-      const innerIdentation = identation(action)
-      res = this._analysePhrase(action.trim(), innerIdentation + identationLength + bucledef.length, lineNumber)
-      errorsFound = errorsFound.concat(res)
-    } else if (condicional !== null) {
-      const condition = condicional[1]
-      const action = condicional[5]
-
-      let res = this._analyseSintagma(condition, identationLength, lineNumber)
-      errorsFound = errorsFound.concat(res)
-
-      const innerIdentation = identation(action)
-      res = this._analysePhrase(action.trim(), innerIdentation + identationLength + condition.length, lineNumber)
-      errorsFound = errorsFound.concat(res)
-    } else if (elseInline !== null) {
-      const actionif = elseInline[1]
-      const elseword = elseInline[2]
-      const actionelse = elseInline[3]
-
-      let res = this._analysePhrase(actionif, identationLength, lineNumber)
-      errorsFound = errorsFound.concat(res)
-
-      res = this._analyseSintagma(elseword, identationLength + actionif.length, lineNumber)
-      errorsFound = errorsFound.concat(res)
-
-      const innerIdentation = identation(actionelse)
-      res = this._analysePhrase(
-        actionelse.trim(),
-        innerIdentation + identationLength + actionif.length + elseword.length,
-        lineNumber,
-      )
-      errorsFound = errorsFound.concat(res)
-    } else {
-      return this._analyseSintagma(lineTrim, identationLength, lineNumber)
+        // separa la resta de paraules en una nova línia
+        const restWords = words.slice(k)
+        //  Analitza la frase a partir d'aquesta comanda
+        const restLine = lineTrim.substring(posInTrim)
+        res = this._analysePhrase(restWords, posInTrim + sintagmaStart, identationLength, lineNumber, restLine)
+        errorsFound = errorsFound.concat(res)
+        return errorsFound
+      }
+      k++
     }
 
+    let res = this._analyseSintagma(words, sintagmaStart, identationLength, lineNumber, lineTrim)
+    errorsFound = errorsFound.concat(res)
     return errorsFound
   }
 
-  __analysePhrase(lineTrim, identationLength, lineNumber) {
-    // TODO: DEPRECAR I MILLORAR IMPLEMENTACIÓ, SEPARAR PER COMANDES AT BEGINING?
-    let errorsFound = []
-    // mira si es un bucle inline
-    const bucle = this._bucleInline ? bucleInlineRegex.exec(lineTrim) : null
-
-    // Mira si és un condicional
-    const condicional = this._conditionalInline ? condicionalInlineRegex.exec(lineTrim) : null
-
-    // Mira si és un else inline
-    const elseInline = this._conditionalInline ? condicionalElseInlineRegex.exec(lineTrim) : null
-
-    if (bucle !== null) {
-      const bucledef = bucle[1]
-      const action = bucle[3]
-
-      let res = this._analyseSintagma(bucledef, identationLength, lineNumber)
-      errorsFound = errorsFound.concat(res)
-
-      const innerIdentation = identation(action)
-      res = this._analysePhrase(action.trim(), innerIdentation + identationLength + bucledef.length, lineNumber)
-      errorsFound = errorsFound.concat(res)
-    } else if (condicional !== null) {
-      const condition = condicional[1]
-      const action = condicional[5]
-
-      let res = this._analyseSintagma(condition, identationLength, lineNumber)
-      errorsFound = errorsFound.concat(res)
-
-      const innerIdentation = identation(action)
-      res = this._analysePhrase(action.trim(), innerIdentation + identationLength + condition.length, lineNumber)
-      errorsFound = errorsFound.concat(res)
-    } else if (elseInline !== null) {
-      const actionif = elseInline[1]
-      const elseword = elseInline[2]
-      const actionelse = elseInline[3]
-
-      let res = this._analysePhrase(actionif, identationLength, lineNumber)
-      errorsFound = errorsFound.concat(res)
-
-      res = this._analyseSintagma(elseword, identationLength + actionif.length, lineNumber)
-      errorsFound = errorsFound.concat(res)
-
-      const innerIdentation = identation(actionelse)
-      res = this._analysePhrase(
-        actionelse.trim(),
-        innerIdentation + identationLength + actionif.length + elseword.length,
-        lineNumber,
-      )
-      errorsFound = errorsFound.concat(res)
-    } else {
-      return this._analyseSintagma(lineTrim, identationLength, lineNumber)
-    }
-
-    return errorsFound
-  }
-
-  _analyseSintagma(lineTrim, identationLength, lineNumber) {
-    let words = separarParaules(lineTrim)
+  _analyseSintagma(words, sintagmaStart, identationLength, lineNumber, lineTrim) {
     const errorsFound = []
 
     // Skip empty lines
@@ -170,34 +84,36 @@ class CheckHedy {
       const scopeCheck = this.memory.comprovaScope(identationLength)
       if (scopeCheck === 'missaligned') {
         errorsFound.push(
-          new HHErrorVals('identation', 'hy-identation-misalignment', 0, identationLength, lineNumber, {
+          new HHErrorVals('identation', 'hy-identation-misalignment', sintagmaStart, identationLength, lineNumber, {
             EXPECTED: this.memory.getDefinedIdentation(),
             FOUND: identationLength,
           }),
         )
       } else if (scopeCheck === 'not_expected') {
-        errorsFound.push(new HHError('identation', 'hy-identation-not-expected', 0, identationLength, lineNumber))
+        errorsFound.push(
+          new HHError('identation', 'hy-identation-not-expected', sintagmaStart, identationLength, lineNumber),
+        )
       } else if (scopeCheck === 'large') {
         errorsFound.push(
-          new HHErrorVals('identation', 'hy-identation-large', 0, identationLength, lineNumber, {
+          new HHErrorVals('identation', 'hy-identation-large', sintagmaStart, identationLength, lineNumber, {
             EXPECTED: this.memory.getDefinedIdentation(),
           }),
         )
       } else if (scopeCheck === 'small') {
         errorsFound.push(
-          new HHErrorVals('identation', 'hy-identation-small', 0, identationLength, lineNumber, {
+          new HHErrorVals('identation', 'hy-identation-small', sintagmaStart, identationLength, lineNumber, {
             EXPECTED: this.memory.getDefinedIdentation(),
           }),
         )
       } else if (scopeCheck === 'expected') {
         errorsFound.push(
-          new HHErrorVals('identation', 'hy-identation-expected', 0, identationLength, lineNumber, {
+          new HHErrorVals('identation', 'hy-identation-expected', sintagmaStart, identationLength, lineNumber, {
             EXPECTED: this.memory.getDefinedIdentation(),
           }),
         )
       } else if (!this._scopeRecursive && this.memory.isScopeRecursive(identationLength)) {
         errorsFound.push(
-          new HHError('identation', 'hy-identation-multiple-unavailable', 0, identationLength, lineNumber),
+          new HHError('identation', 'hy-identation-multiple-unavailable', sintagmaStart, identationLength, lineNumber),
         )
       }
     }

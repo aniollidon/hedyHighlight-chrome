@@ -10,7 +10,7 @@ const CUSTOM_DICTIONARY = new Set([
 
 /**
  * Extract all constant_string_quoted tokens from hedy analysis
- * Returns array of { text, line, start, end }
+ * Returns array of { text, line, start, end, isQuoted }
  */
 export function extractQuotedStrings(words, line) {
   const strings = []
@@ -20,10 +20,11 @@ export function extractQuotedStrings(words, line) {
     for (const w of wordList) {
       if (w.tag && w.tag.startsWith('constant_string_quoted')) {
         strings.push({
-          text: w.text, // e.g. "hello"
+          text: w.raw ? w.raw : w.text,
           line: line,
           start: w.pos,
           end: w.end !== undefined ? w.end : w.pos + w.text.length,
+          isQuoted: true,
         })
       }
       if (w.subphrase && w.subphrase.words) {
@@ -38,7 +39,7 @@ export function extractQuotedStrings(words, line) {
 
 /**
  * Extract all unquoted_string tokens from hedy analysis
- * Returns array of { text, line, start, end }
+ * Returns array of { text, line, start, end, isQuoted }
  */
 export function extractUnquotedStrings(words, line) {
   const strings = []
@@ -48,13 +49,13 @@ export function extractUnquotedStrings(words, line) {
     for (const w of wordList) {
       if (w.tag && w.tag.startsWith('constant_string_unquoted')) {
         strings.push({
-          text: w.text,
+          text: w.raw ? w.raw : w.text, // use raw if available to get original formatting
           line: line,
           start: w.pos,
           end: w.end !== undefined ? w.end : w.pos + w.text.length,
+          isQuoted: false,
         })
-      }
-      if (w.subphrase && w.subphrase.words) {
+      } else if (w.subphrase && w.subphrase.words) {
         traverse(w.subphrase.words)
       }
     }
@@ -138,12 +139,24 @@ export async function checkSpelling(texts, language = 'ca') {
     })
 
     // Map errors back to original texts
+    const ignoredRules = new Set(['CATALAN_WORD_REPEAT_RULE']) // Add more rule IDs to ignore if needed
+    const ignoredcategories = new Set(['CASING', 'TYPOGRAPHY']) // Add more categories to ignore if needed
     const errors = []
+    console.log('LanguageTool spell check matches:', matches)
     matches.forEach(match => {
-      //Agafa només errors ortogràfics
+      // TODO: MENTRE NO HO REPAREM. ES POT MILLORAR
       if (match.rule && match.rule.category && match.rule.category.id !== 'TYPOS') {
         return
       }
+      /*
+      //Ignora regles específiques
+      if (
+        match.rule &&
+        ((match.rule.id && ignoredRules.has(match.rule.id)) ||
+          (match.rule.category && ignoredcategories.has(match.rule.category.id)))
+      ) {
+        return
+      }*/
 
       // Ignore words in custom dictionary (case-insensitive)
       // Extract word from combined text using offset and length
@@ -156,6 +169,12 @@ export async function checkSpelling(texts, language = 'ca') {
         return
       }
 
+      // Ignore errors that span across multiple lines (contain newline character)
+      const errorText = combinedText.substring(matchStartPos, matchEndPos)
+      if (errorText.includes('\n')) {
+        return
+      }
+
       // Find which text this error belongs to
       const matchPos = match.offset
       const textMapping = positionMap.find(m => matchPos >= m.charStart && matchPos < m.charEnd)
@@ -163,8 +182,7 @@ export async function checkSpelling(texts, language = 'ca') {
       if (textMapping && texts[textMapping.textIndex]) {
         const originalText = texts[textMapping.textIndex]
         // Account for opening quote only if the token is quoted
-        const firstChar = (originalText.text || '').charAt(0)
-        const offset = firstChar === '"' || firstChar === "'" ? 1 : 0
+        const offset = originalText.isQuoted ? 1 : 0
         const relativeOffset = match.offset - textMapping.charStart
 
         errors.push({

@@ -39,7 +39,9 @@ export class SpellCheckManager {
   }
 
   _makeError(token, localIndex, word, entry) {
-    const start = token.start + localIndex
+    // Account for opening quote if token is quoted
+    const quoteOffset = token.isQuoted ? 1 : 0
+    const start = token.start + quoteOffset + localIndex
     const end = start + word.length
     return {
       line: token.line,
@@ -129,8 +131,10 @@ export class SpellCheckManager {
       for (const err of errors) {
         const owner = tokens.find(t => t.line === err.line && t.start <= err.start && t.end >= err.end)
         if (!owner) continue
-        const localStart = err.start - owner.start
-        const localEnd = err.end - owner.start
+        // Account for opening quote offset when calculating local position
+        const quoteOffset = owner.isQuoted ? 1 : 0
+        const localStart = err.start - owner.start - quoteOffset
+        const localEnd = err.end - owner.start - quoteOffset
         const word = owner.text.substring(localStart, localEnd)
         if (!word) continue
         const key = word.toLowerCase()

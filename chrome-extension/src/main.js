@@ -107,7 +107,7 @@ export function main() {
 
     const lines = text.split('\n')
     let allErrors = []
-    let allSpellingErrors = []
+    let allStrings = []
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
@@ -136,7 +136,7 @@ export function main() {
           for (const sint of currentLineSintagmas) {
             const quotedStrings = extractQuotedStrings(sint.words, i)
             if (quotedStrings && quotedStrings.length) {
-              allSpellingErrors = allSpellingErrors.concat(quotedStrings)
+              allStrings = allStrings.concat(quotedStrings)
             }
           }
         }
@@ -147,7 +147,7 @@ export function main() {
           for (const sint of currentLineSintagmas) {
             const unquotedStrings = extractUnquotedStrings(sint.words, i)
             if (unquotedStrings && unquotedStrings.length) {
-              allSpellingErrors = allSpellingErrors.concat(unquotedStrings)
+              allStrings = allStrings.concat(unquotedStrings)
             }
           }
         }
@@ -203,8 +203,8 @@ export function main() {
     window.postMessage({ type: 'HEDY_PHRASES', phrases: phrases }, '*')
 
     if (spellCheckEnabled) {
-      //console.log('Hedy Error Highlighter: Passing', allSpellingErrors.length, 'tokens to SpellCheckManager')
-      spellManager.processQuotedStrings(allSpellingErrors, text)
+      //console.log('Hedy Error Highlighter: Passing', allStrings.length, 'tokens to SpellCheckManager')
+      spellManager.processQuotedStrings(allStrings, text)
     } else {
       window.postMessage({ type: 'HEDY_SPELL_ERRORS', errors: [] }, '*')
     }

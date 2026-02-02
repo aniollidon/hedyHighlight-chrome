@@ -7,6 +7,12 @@ export class HedyCommandAnalyzer {
     this.level = level
     this.commandsSyntax = new hedyCommands(level)
     this._usesCometesText = usesCometesText
+
+    // Llista de textos de commandes que han de començar una línia (atBegining)
+    this.cmdAtBegining = Object.values(this.commandsSyntax.commands)
+      .filter(cmd => cmd.atBegining)
+      .filter(cmd => (!cmd.levelStart || cmd.levelStart <= level) && (!cmd.levelEnd || cmd.levelEnd >= level))
+      .map(cmd => cmd.text)
   }
 
   tagCommands(words) {
