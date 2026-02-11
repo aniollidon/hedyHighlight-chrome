@@ -82,7 +82,7 @@ const severityAndPriority = {
   'hy-variabledef-multiplewords': { severity: 'error', priority: 100 },
   'hy-bad-definition-for-is': { severity: 'error', priority: 100 },
   'hy-function-argument-duplicated': { severity: 'warning', priority: 100 },
-  'hy-actions-must-be-in-next-sentence': { severity: 'warning', priority: 100 },
+  'hy-actions-must-be-in-next-sentence': { severity: 'error', priority: 100 },
   'hy-actions-must-be-in-same-sentence': { severity: 'error', priority: 100 },
   'hy-not-print-decimals': { severity: 'error', priority: 100 },
   'hy-not-decimals': { severity: 'error', priority: 100 },
@@ -134,7 +134,7 @@ class HHError {
 
   _process_messsage(message) {
     message = message.replace('[NAME]', this.onText)
-    message = message.replace('[COMMAND]', this.command ? this.command : this.onText)
+    message = message.replace('[COMMAND]', lang.command2text(this.command ? this.command : this.onText))
     message = message.replace('[LOWER]', this.onText.toLowerCase())
     message = message.replace('[LINE]', this.line + 1)
 

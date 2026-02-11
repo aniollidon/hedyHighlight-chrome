@@ -108,6 +108,8 @@ Es poden imprimir llistes
 - Sense sagnat recomana if/else amb enter. ✔️
 - Sense sagnat no hi pot haver sagnat ✔️
 - No és error definir un apostrof en un unquoted string `premis is 1 d'això, dallo`
+- Multiples strings a les llistes `premis is 1 d'això, dallo`
+- concatenar sumes/restes/mutiplicacions
 - les variables que contenen booleans no es poden imprimr ✔️
 
 ## TODO IMPORTANT. A PARTIR DEL 13... falta bastant

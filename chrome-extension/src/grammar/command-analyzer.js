@@ -49,12 +49,22 @@ export class HedyCommandAnalyzer {
         }
 
         if (command.levelStart && command.levelStart > this.level) {
+          if (command.unavailable) {
+            words[k].tag = command.unavailable
+            words[k].type = command.unavailable.split('_')[0]
+            continue
+          }
           words[k].couldBe = {
             command: command.name,
             errorCode: 'hy-level-unavailable-yet',
           }
           continue
         } else if (command.levelEnd && command.levelEnd < this.level) {
+          if (command.unavailable) {
+            words[k].tag = command.unavailable
+            words[k].type = command.unavailable.split('_')[0]
+            continue
+          }
           words[k].couldBe = {
             command: command.name,
             errorCode: 'hy-level-unavailable-deprecated',
@@ -170,8 +180,8 @@ export class HedyCommandAnalyzer {
       for (let j = endArgsPos; j < endCh; j++) {
         // per debugar
         const wordj = sintagma.get(j)
-        // Exceptuant l'element de concatOn
-        if (commandDef.concatOn && sintagma.get(j).command && sintagma.get(j).command.includes(commandDef.concatOn)) {
+        // Exceptuant l'element separator
+        if (commandDef.separator && sintagma.get(j).command && sintagma.get(j).command.includes(commandDef.separator)) {
           errorsFound = errorsFound.concat(
             this.checkCommandArguments(
               sintagma,
@@ -199,7 +209,7 @@ export class HedyCommandAnalyzer {
       }
     }
 
-    // S'han de comprovar els arguments abans de la comanda, només si no és per concatOn
+    // S'han de comprovar els arguments abans de la comanda, només si no és per separator
     if (!byconcat && commandDef.argumentsBefore !== undefined) {
       if (commandPosSig < commandDef.argumentsBefore) {
         errorsFound.push(

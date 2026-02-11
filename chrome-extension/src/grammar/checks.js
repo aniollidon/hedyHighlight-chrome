@@ -36,11 +36,12 @@ class CheckHedy {
     const identationLength = identation(line)
     const lineTrim = line.trim()
     if (lineTrim === '') return []
-    let words = separarParaules(lineTrim)
-    const errors = this._analysePhrase(words, 0, identationLength, lineNumber, lineTrim)
+    let words = separarParaules(lineTrim, identationLength)
+
+    const errors = this._analysePhrase(words, 0, identationLength, lineNumber, line)
     return this._processErrors(errors, line, lineNumber)
   }
-  _analysePhrase(words, sintagmaStart, identationLength, lineNumber, lineTrim) {
+  _analysePhrase(words, sintagmaStart, identationLength, lineNumber, rawLine) {
     let errorsFound = []
 
     let k = 1
@@ -53,27 +54,35 @@ class CheckHedy {
         // Analitza sintagma abans de la comanda
         const priorWords = words.slice(0, k)
         const posInTrim = word.pos - identationLength
-        const priorLine = lineTrim.substring(0, posInTrim)
-        let res = this._analyseSintagma(priorWords, sintagmaStart, identationLength, lineNumber, priorLine)
+        let res = this._analyseSintagma(priorWords, sintagmaStart, identationLength, lineNumber, rawLine)
         errorsFound = errorsFound.concat(res)
 
         // separa la resta de paraules en una nova línia
         const restWords = words.slice(k)
         //  Analitza la frase a partir d'aquesta comanda
-        const restLine = lineTrim.substring(posInTrim)
-        res = this._analysePhrase(restWords, posInTrim + sintagmaStart, identationLength, lineNumber, restLine)
+
+        // word.pos -  priorWords[-1].end
+        const newIdentation = priorWords.length > 0 ? word.pos - priorWords[priorWords.length - 1].end : 0
+
+        res = this._analysePhrase(
+          restWords,
+          posInTrim + sintagmaStart + identationLength,
+          newIdentation,
+          lineNumber,
+          rawLine,
+        )
         errorsFound = errorsFound.concat(res)
         return errorsFound
       }
       k++
     }
 
-    let res = this._analyseSintagma(words, sintagmaStart, identationLength, lineNumber, lineTrim)
+    let res = this._analyseSintagma(words, sintagmaStart, identationLength, lineNumber, rawLine)
     errorsFound = errorsFound.concat(res)
     return errorsFound
   }
 
-  _analyseSintagma(words, sintagmaStart, identationLength, lineNumber, lineTrim) {
+  _analyseSintagma(words, sintagmaStart, identationLength, lineNumber, rawLine) {
     const errorsFound = []
 
     // Skip empty lines
@@ -118,7 +127,7 @@ class CheckHedy {
       }
     }
 
-    const wordsTagged = this._tagWordsAndMorpho(words, identationLength, lineNumber, lineTrim)
+    const wordsTagged = this._tagWordsAndMorpho(words, identationLength, lineNumber, rawLine)
     const sintagma = this.memory.newSintagma(wordsTagged, identationLength, lineNumber)
 
     let errors = this._searchMorphosyntacticErrors(sintagma, lineNumber)
@@ -136,11 +145,6 @@ class CheckHedy {
   }
 
   _tagWordsAndMorpho(words, identationLength, lineNumber, rawLine) {
-    // suma la identació a la posició de les paraules
-    for (let i = 0; i < words.length; i++) {
-      words[i].pos += identationLength
-    }
-
     if (words.length === 0) return []
 
     words = this.commandsSyntax.tagCommands(words)

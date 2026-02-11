@@ -33,7 +33,7 @@ export function entreCometes(text, pos) {
   return false
 }
 
-export function separarParaules(codi) {
+export function separarParaules(codiTrim, identationLength) {
   /*
    * Regex per tokenitzar codi Hedy en paraules, strings, emojis, números i símbols.
    *
@@ -66,13 +66,13 @@ export function separarParaules(codi) {
    *   u - unicode (necessari per \p{...})
    */
   const regex =
-    /'([^']*)'|"([^"]*)"|((?:[\p{Extended_Pictographic}][\uFE0F\u20E3]*)+)|([\p{L}\p{M}_\d.]+)|(\d+\.\d+|\d+)|([^\p{L}\p{Extended_Pictographic}\d\s.'"]+)/gu
+    /'([^']*)'|"([^"]*)"|((?:[\p{Extended_Pictographic}][\uFE0F\u20E3]*)+)|([\p{L}\p{M}_\d.!]+)|(\d+\.\d+|\d+)|([^\p{L}\p{Extended_Pictographic}\d\s.'"]+)/gu
   let paraules = []
   let match
 
-  while ((match = regex.exec(codi)) !== null) {
+  while ((match = regex.exec(codiTrim)) !== null) {
     const [_, cometesSimples, cometesDobles, emoji, paraula, numero, simbols] = match
-    let posicio = match.index // Posició inicial de la coincidència
+    let posicio = match.index + identationLength // Posició inicial de la coincidència
 
     if (cometesSimples !== undefined) {
       paraules.push({ text: `'${cometesSimples}'`, pos: posicio }) // Text entre cometes simples

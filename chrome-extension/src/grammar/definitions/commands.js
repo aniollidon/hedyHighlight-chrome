@@ -12,8 +12,11 @@
   + minArgumentsAfter: Número mínim d'elements que ha de tenir la comanda (default = NO CHECK)
   + minArgumentsBefore: Número mínim d'elements que ha de tenir la comanda abans (default = NO CHECK)
   + concatOn: Quines comandes estàn permeses per concatenar accions. Per exemple 1 + 1 + 2 [NO contigues](default = NO CHECK)
+  + separator: Comanda que s'usa com a separador d'elements [S'espera el separador entre arguments] (default = NO CHECK)
+  + separatorConfig: Com actual el separador required | optional | recommended (default = required)
   + usesParameters: Si la comanda fa servir paràmetres (default = false)
   + closedBy: Commanda de tancament de la comanda (default = NO CHECK)
+  + unavailable: tag que s'assinga quan la comanda encara no està disponible (per defecte sino donarà error)
   + arguments: Array amb les restriccions de sintaxi dels elements de la comanda
     + codeerror: Codi de l'error (obligatori)
     + levelStart: Nivell on comença la restricció [inclusiu] (default =1)
@@ -118,7 +121,8 @@ const commandDefinition = [
     parenthesis: true, // ja busca els parèntesis inici i final
     atBegining: true,
     argumentsAfter: 1,
-    concatOn: ['comma'],
+    separator: 'comma',
+    separatorConfig: 'recommended',
     ...printableTemplate,
   },
   {
@@ -219,7 +223,8 @@ const commandDefinition = [
     levelEnd: def.CMD_INPUT.end,
     parenthesis: true, // ja busca els parèntesis inici i final
     argumentsAfter: 1,
-    concatOn: ['comma'],
+    separator: 'comma',
+    separatorConfig: 'recommended',
     ...printableTemplate,
   },
   {
@@ -278,9 +283,10 @@ const commandDefinition = [
     text: 'is',
     name: 'variable_define_is',
     levelStart: def.CMD_IS.start,
-    concatOn: ['comma'],
+    separator: 'comma',
+    separatorConfig: 'optional',
     hasBefore: /^[\p{L}\d_]+ *(\[ *[\p{L}\d_]+ *\])?$/gu,
-    argumentsAfter: 1,
+    minArgumentsAfter: 1,
     arguments: [
       {
         levelEnd: def.COMETES_ARREU.before(),
@@ -333,9 +339,10 @@ const commandDefinition = [
     text: '=',
     name: 'variable_define_equal',
     levelStart: def.CMD_EQUAL.start,
-    concatOn: ['comma'],
+    separator: 'comma',
+    separatorConfig: 'optional',
     hasBefore: /^[\p{L}\d_]+ *(\[ *[\p{L}\d_]+ *\])?$/gu,
-    argumentsAfter: 1,
+    minArgumentsAfter: 1,
     arguments: [
       {
         levelEnd: def.COMETES_ARREU.before(),
@@ -508,6 +515,7 @@ const commandDefinition = [
   {
     text: '-',
     name: 'rest',
+    unavailable: 'constant_string_unquoted',
     ...operationTemplate,
   },
   {
@@ -572,6 +580,8 @@ const commandDefinition = [
     text: 'range',
     levelStart: def.CMD_RANGE_BRACED.start,
     hasBefore: /^for .* in$/g,
+    separator: 'comma',
+    separatorConfig: 'required',
     argumentsAfter: 3,
   },
   {
@@ -873,7 +883,8 @@ const commandDefinition = [
     name: 'bracket_open_definition',
     levelStart: def.BRACED_LIST.start,
     argumentsAfter: 1,
-    concatOn: ['comma'],
+    separator: 'comma',
+    separatorConfig: 'required',
     closedBy: 'bracket_close',
     arguments: [
       {

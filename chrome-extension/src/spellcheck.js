@@ -129,6 +129,7 @@ export async function checkSpelling(texts, language = 'ca') {
     let charPosition = 0
     const positionMap = [] // array of { charStart, charEnd, textIndex }
 
+    console.log('Cleaned texts for spell check:', cleanedTexts)
     cleanedTexts.forEach((text, idx) => {
       positionMap.push({
         charStart: charPosition,
@@ -140,15 +141,14 @@ export async function checkSpelling(texts, language = 'ca') {
 
     // Map errors back to original texts
     const ignoredRules = new Set(['CATALAN_WORD_REPEAT_RULE']) // Add more rule IDs to ignore if needed
-    const ignoredcategories = new Set(['CASING', 'TYPOGRAPHY']) // Add more categories to ignore if needed
+    const ignoredcategories = new Set(['CASING', 'TYPOGRAPHY', 'PUNCTUATION']) // Add more categories to ignore if needed
     const errors = []
     console.log('LanguageTool spell check matches:', matches)
     matches.forEach(match => {
       // TODO: MENTRE NO HO REPAREM. ES POT MILLORAR
-      if (match.rule && match.rule.category && match.rule.category.id !== 'TYPOS') {
+      /*if (match.rule && match.rule.category && match.rule.category.id !== 'TYPOS') {
         return
-      }
-      /*
+      }*/
       //Ignora regles específiques
       if (
         match.rule &&
@@ -156,7 +156,7 @@ export async function checkSpelling(texts, language = 'ca') {
           (match.rule.category && ignoredcategories.has(match.rule.category.id)))
       ) {
         return
-      }*/
+      }
 
       // Ignore words in custom dictionary (case-insensitive)
       // Extract word from combined text using offset and length
