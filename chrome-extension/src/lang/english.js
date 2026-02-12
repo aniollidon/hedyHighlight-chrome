@@ -239,6 +239,12 @@ const errors = {
   'hy-function-unexpected-argument': {
     message: "The function '[NAME]' only expects [VALUE] arguments.",
   },
+  'hy-function-parenthesis-missing': {
+    message: "The function '[NAME]' needs parentheses '()' for its arguments.",
+  },
+  'hy-function-parenthesis-close': {
+    message: "The parentheses of the function '[NAME]' must be closed with ')'.",
+  },
   'hy-ask-not-in-definition': {
     message: "The command 'ask' must be inside a variable definition.",
   },

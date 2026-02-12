@@ -21,7 +21,7 @@ class Memory {
     else if (words[0].command === 'else') sintagmaTag = 'condition_else'
     else if (words[0].command === 'repeat' || words[0].command === 'for' || words[0].command === 'while')
       sintagmaTag = 'loop'
-    else if (words[0].command === 'define') sintagmaTag = 'function_definition'
+    else if (words[0].command === 'define' || words[0].command === 'def') sintagmaTag = 'function_definition'
 
     if (this.last() !== undefined && this.last().linenum === lineNumber) {
       this._partialcount++

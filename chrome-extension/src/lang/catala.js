@@ -239,6 +239,12 @@ const errors = {
   'hy-function-unexpected-argument': {
     message: "La funció '[NAME]' només espera [VALUE] arguments.",
   },
+  'hy-function-parenthesis-missing': {
+    message: "La funció '[NAME]' necessita parèntesis '()' per als seus arguments.",
+  },
+  'hy-function-parenthesis-close': {
+    message: "Els parèntesis de la funció '[NAME]' s'han de tancar amb ')'.",
+  },
   'hy-ask-not-in-definition': {
     message: "La comanda 'ask' ha d'anar dins d'una definició de variable.",
   },

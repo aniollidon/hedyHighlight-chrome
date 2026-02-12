@@ -21,7 +21,7 @@ const hedyGeneralSyntax = [
     codeerror: 'hy-blanks-not-allowed',
   },
   {
-    allowed: ['call_echo', 'call_function', 'call_ask', 'call_print', 'command', 'declaration'],
+    allowed: ['call_echo', 'call_function', 'call_ask', 'call_print', 'command', 'declaration', 'entity_function'],
     codeerror: 'hy-lines-must-start-with',
     positionInSintagma: 0,
     subphrase: 0,

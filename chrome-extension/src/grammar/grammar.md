@@ -112,10 +112,11 @@ Es poden imprimir llistes
 - concatenar sumes/restes/mutiplicacions✔️ ✔️
 - les variables que contenen booleans no es poden imprimr ✔️
 - abans del 6, notes unquoted sempre
+- variables es poden definir per tots els camins de l'if
 
 ## TODO IMPORTANT. A PARTIR DEL 13... falta bastant
 
-- Acceptar if var is paraula segona (strings conncatenats)
+- Acceptar if var is paraula segona (strings conncatenats)✔️
 - què passa amb nom = 1-2 777777
 - Acceptar amb warnings print( "bla" "bla" ) # SENSE COMES! ✔️
 - Acceptar amb warnings print "bla", "bla" # SENSE ()! ✔️
@@ -126,3 +127,7 @@ Es poden imprimir llistes
 - A nivell 13 les vars en les llistes estan permeses
 - prohibir les llsites sense [] (a = 1, 2 ,3) ✔️
 - Colors amb cometes nivell 13 ✔️
+
+- crides que es detecten com a llisteS?
+
+- Funcions

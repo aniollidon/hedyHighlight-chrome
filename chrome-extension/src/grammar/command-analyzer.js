@@ -407,6 +407,53 @@ export class HedyCommandAnalyzer {
       }
     }
 
+    // Es comprova si la definició necessita parèntesis per als paràmetres (e.g., def func(params):)
+    if (commandDef.defParenthesis) {
+      const funcNamePos = startPos
+      if (
+        funcNamePos < endPos &&
+        sintagma.get(funcNamePos).tag &&
+        sintagma.get(funcNamePos).tag.startsWith('entity_function')
+      ) {
+        const parenPos = funcNamePos + 1
+        const hasDefParens = parenPos < endPos && sintagma.get(parenPos).command === 'parenthesis_open'
+
+        if (hasDefParens) {
+          // Busca el parèntesi tancat
+          let closeParen = -1
+          for (let j = parenPos + 1; j < endPos; j++) {
+            if (sintagma.get(j).command === 'parenthesis_close') {
+              closeParen = j
+              break
+            }
+          }
+
+          if (closeParen === -1) {
+            errorsFound.push(
+              new HHError(
+                sintagma.get(funcNamePos).text,
+                'hy-function-parenthesis-close',
+                sintagma.end(endPos - 1),
+                sintagma.end(endPos - 1) + 1,
+                lineNumber,
+              ),
+            )
+          }
+        } else {
+          // Falten parèntesis després del nom de la funció
+          errorsFound.push(
+            new HHError(
+              sintagma.get(funcNamePos).text,
+              'hy-function-parenthesis-missing',
+              sintagma.start(funcNamePos),
+              sintagma.end(funcNamePos),
+              lineNumber,
+            ),
+          )
+        }
+      }
+    }
+
     const argErrors = this.checkCommandArguments(sintagma, commandWord, commandDef, pos, startPos, endPos, lineNumber)
     errorsFound = errorsFound.concat(argErrors)
     return errorsFound

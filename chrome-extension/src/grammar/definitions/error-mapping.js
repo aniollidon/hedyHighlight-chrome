@@ -43,7 +43,7 @@ const errorMapping = [
   },
   {
     codeerror: 'hy-expecting-close',
-    on: ['if', 'else', 'elif', 'while', 'for'],
+    on: ['if', 'else', 'elif', 'while', 'for', 'def', 'define'],
     to: 'hy-missing-colon',
   },
   {

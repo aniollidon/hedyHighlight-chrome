@@ -23,6 +23,8 @@ const severityAndPriority = {
   'hy-command-entity-conflict': { severity: 'info', priority: 3 },
   'hy-function-missing-argument': { severity: 'error', priority: 3 },
   'hy-function-unexpected-argument': { severity: 'error', priority: 3 },
+  'hy-function-parenthesis-missing': { severity: 'error', priority: 10 },
+  'hy-function-parenthesis-close': { severity: 'error', priority: 254 },
   'hy-command-missing-argument-comma': { severity: 'error', priority: 4 },
   'hy-separator-required': { severity: 'error', priority: 4 },
   'hy-separator-recommended': { severity: 'info', priority: 4 },

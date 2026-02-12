@@ -137,13 +137,31 @@ class EntityDefinitions {
         }
       }
 
-    // Busca declaracions de funcions
+    // Busca declaracions de funcions i paràmetres
     i = 0
     if (this._define_functions)
       while (i + 1 < words.length) {
-        if (words[i].command === 'define') {
+        if (words[i].command === 'define' || words[i].command === 'def') {
+          const funcName = words[i + 1].text
           this.#setEntity(words[i + 1], 'function', scope, lineNumber)
           i += 2
+
+          // Busca paràmetres entre parèntesis: define FUNC(PARAM1, PARAM2, ...)
+          if (i < words.length && words[i].command === 'parenthesis_open') {
+            i++ // Skip '('
+            let paramCount = 0
+            while (i < words.length && words[i].command !== 'parenthesis_close') {
+              if (words[i].command !== 'comma') {
+                this.#setEntity(words[i], 'parameter', undefined, lineNumber)
+                paramCount++
+              }
+              i++
+            }
+            if (i < words.length) i++ // Skip ')'
+            if (this.entities[funcName]) {
+              this.entities[funcName].params = paramCount
+            }
+          }
         } else {
           i++
         }

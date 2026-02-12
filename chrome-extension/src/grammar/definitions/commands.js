@@ -598,7 +598,14 @@ const commandDefinition = [
         codeerror: 'hy-execting-parameter',
       },
       {
-        allowed: ['entity_function', 'entity_parameter', 'command_with', 'command_comma_argument'],
+        allowed: [
+          'entity_function',
+          'entity_parameter',
+          'command_with',
+          'command_comma',
+          'command_parenthesis_open',
+          'command_parenthesis_close',
+        ],
         codeerror: 'hy-execting-function-definition',
       },
     ],
@@ -614,6 +621,7 @@ const commandDefinition = [
     levelStart: def.FUNCTIONS_PYTHON.start,
     levelEnd: def.FUNCTIONS_PYTHON.end,
     atBegining: true,
+    defParenthesis: true,
     minArgumentsAfter: 1,
     arguments: [
       {
@@ -621,7 +629,14 @@ const commandDefinition = [
         codeerror: 'hy-execting-parameter',
       },
       {
-        allowed: ['entity_function', 'entity_parameter', 'command_with', 'command_comma_argument'],
+        allowed: [
+          'entity_function',
+          'entity_parameter',
+          'command_with',
+          'command_comma',
+          'command_parenthesis_open',
+          'command_parenthesis_close',
+        ],
         codeerror: 'hy-execting-function-definition',
       },
     ],

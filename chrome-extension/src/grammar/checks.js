@@ -26,6 +26,7 @@ class CheckHedy {
     this._booleans = def.BOOLEANS.at(level)
     this._range = def.CMD_RANGETO.at(level)
     this._functions = def.FUNCIONS.at(level)
+    this._functionParentheses = def.PARENTHESES.at(level)
     let beforeDef = '^'
     if (this._bucleInline) beforeDef = '(?:^|\\btimes\\b)'
 
@@ -223,6 +224,16 @@ class CheckHedy {
       }
 
       if (word.entity) {
+        // Si és un ús de funció comprova els arguments
+        if (
+          this._functionParentheses &&
+          word.entity.type === 'function' &&
+          sintagma.sintagmaTag !== 'function_definition'
+        ) {
+          const funcErrors = this._checkFunctionCallArguments(sintagma, k, lineNumber)
+          errorsFound.push(...funcErrors)
+        }
+
         if (word.entity.outOfScope) {
           errorsFound.push(
             new HHErrorLineDef(word.text, 'hy-entity-out-of-scope', start, end, lineNumber, word.entity.defLine),
@@ -284,6 +295,142 @@ class CheckHedy {
 
         errorsFound.push(new HHErrorType(word.text, rule.codeerror, start, end, lineNumber, word.tag))
       }
+    }
+
+    return errorsFound
+  }
+
+  _checkFunctionCallArguments(sintagma, k, lineNumber) {
+    const errorsFound = []
+    const word = sintagma.get(k)
+
+    // Comprova si el següent element és un parèntesi obert
+    const hasParenthesis = k + 1 < sintagma.size() && sintagma.get(k + 1).command === 'parenthesis_open'
+
+    if (!hasParenthesis) {
+      // Falten parèntesis després de la funció
+      errorsFound.push(
+        new HHError(word.text, 'hy-function-parenthesis-missing', sintagma.start(k), sintagma.end(k), lineNumber),
+      )
+      return errorsFound
+    }
+
+    // Marca el parèntesi obert com a utilitzat
+    sintagma.markUsed(k + 1)
+
+    // Busca el parèntesi tancat
+    let closePos = -1
+    for (let j = k + 2; j < sintagma.size(); j++) {
+      if (sintagma.get(j).command === 'parenthesis_close') {
+        closePos = j
+        break
+      }
+    }
+
+    if (closePos === -1) {
+      // Parèntesis no tancats
+      errorsFound.push(
+        new HHError(
+          word.text,
+          'hy-function-parenthesis-close',
+          sintagma.sintagmaEnd(),
+          sintagma.sintagmaEnd() + 1,
+          lineNumber,
+        ),
+      )
+      // Continua comprovant amb els arguments disponibles fins al final
+      closePos = sintagma.size()
+    } else {
+      // Marca el parèntesi tancat com a utilitzat
+      sintagma.markUsed(closePos)
+    }
+
+    // Classifica elements entre parèntesis en arguments i separadors
+    const startArgs = k + 2
+    const endArgs = closePos
+
+    const elements = []
+    for (let j = startArgs; j < endArgs; j++) {
+      const w = sintagma.get(j)
+      const isSep = !!(w.command && w.command === 'comma')
+      elements.push({ pos: j, isSeparator: isSep })
+    }
+
+    const argPositions = elements.filter(e => !e.isSeparator).map(e => e.pos)
+    const sepPositions = elements.filter(e => e.isSeparator).map(e => e.pos)
+    const argCount = argPositions.length
+
+    // Comprova separadors (comes entre arguments)
+    if (elements.length > 0) {
+      // No hi pot haver un separador al final
+      if (elements[elements.length - 1].isSeparator) {
+        const lastSepPos = elements[elements.length - 1].pos
+        errorsFound.push(
+          new HHError(
+            sintagma.get(lastSepPos).text,
+            'hy-not-expecting-coma-final',
+            sintagma.start(lastSepPos),
+            sintagma.end(lastSepPos),
+            lineNumber,
+          ),
+        )
+      }
+
+      // Comprova que hi ha comes entre arguments adjacents
+      for (let i = 1; i < elements.length; i++) {
+        if (!elements[i].isSeparator && !elements[i - 1].isSeparator) {
+          errorsFound.push(
+            new HHError(
+              sintagma.get(elements[i].pos).text,
+              'hy-separator-required',
+              sintagma.end(elements[i].pos - 1),
+              sintagma.start(elements[i].pos),
+              lineNumber,
+            ),
+          )
+        }
+      }
+
+      // Marca separadors com a utilitzats
+      for (const sepPos of sepPositions) {
+        sintagma.markUsed(sepPos)
+      }
+    }
+
+    // Comprova el nombre d'arguments si coneixem els paràmetres de la funció
+    if (word.entity.params !== undefined) {
+      const expectedParams = word.entity.params
+
+      if (argCount < expectedParams) {
+        errorsFound.push(
+          new HHErrorVals(word.text, 'hy-function-missing-argument', sintagma.start(k), sintagma.end(k), lineNumber, {
+            EXPECTED: expectedParams,
+            FOUND: argCount,
+          }),
+        )
+      } else if (argCount > expectedParams) {
+        // Marca els arguments extres amb error
+        for (let i = expectedParams; i < argPositions.length; i++) {
+          errorsFound.push(
+            new HHErrorVal(
+              word.text,
+              'hy-function-unexpected-argument',
+              sintagma.start(argPositions[i]),
+              sintagma.end(argPositions[i]),
+              lineNumber,
+              expectedParams,
+            ),
+          )
+        }
+      }
+    }
+
+    // Marca el nom de la funció i els arguments vàlids com a utilitzats
+    sintagma.markUsed(k)
+    const maxToMark =
+      word.entity.params !== undefined ? Math.min(argPositions.length, word.entity.params) : argPositions.length
+    for (let i = 0; i < maxToMark; i++) {
+      sintagma.markUsed(argPositions[i])
     }
 
     return errorsFound
