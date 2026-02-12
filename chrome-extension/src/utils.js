@@ -1,5 +1,12 @@
+/* Funció auxiliar per clonar un objecte.
+ * S'utilitza per evitar problemes de referències compartides.
+ */
+export function clone(obj) {
+  return JSON.parse(JSON.stringify(obj))
+}
+
 /* Funció auxiliar per comparar una regla amb un valor.
-  Una regla pot tenir diferents formats:
+   Una regla pot tenir diferents formats:
     - Un valor simple: es compara directament
     - Un array de valors: es comprova si el valor està dins l'array
     - un dict amb condicions més complexes. (after / before)
@@ -33,6 +40,9 @@ export function entreCometes(text, pos) {
   return false
 }
 
+export function cleanCometes(text) {
+  return text.replace(/^['"]|['"]$/g, '')
+}
 export function separarParaules(codiTrim, identationLength) {
   /*
    * Regex per tokenitzar codi Hedy en paraules, strings, emojis, números i símbols.

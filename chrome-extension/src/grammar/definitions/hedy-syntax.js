@@ -26,22 +26,21 @@ class hedyCommands {
     this.level = level
     this.commands = {}
 
-    for (const comm of commands) {
-      const obj = new Command(comm)
-
-      if (obj.syntax) {
-        for (const syntax of obj.syntax) {
+    for (let comm of commands) {
+      if (comm.syntax) {
+        for (const syntax of comm.syntax) {
           if (syntax.levelStart && level < syntax.levelStart) continue
           if (syntax.levelEnd && level > syntax.levelEnd) continue
 
           // Afegeix a la comanda qualsevol element de sintaxi (exeptuant levelStart i levelEnd)
           for (const key in syntax) {
             if (key !== 'levelStart' && key !== 'levelEnd') {
-              obj[key] = syntax[key]
+              comm[key] = syntax[key]
             }
           }
         }
       }
+      const obj = new Command(comm)
       this.commands[obj.name] = obj
     }
   }

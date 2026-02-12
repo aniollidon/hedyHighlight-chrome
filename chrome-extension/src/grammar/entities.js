@@ -1,5 +1,6 @@
 import * as def from './definitions/definitions.js'
 import { enUnaLlista, getDefinitionType } from './types.js'
+import { clone } from '../utils.js'
 
 class EntityDefinitions {
   constructor(level) {
@@ -13,33 +14,37 @@ class EntityDefinitions {
     this._return_fun = def.RETURN_FUNCTION.at(level)
 
     this.tokens = []
-    this.names = {}
+    this.entities = {}
   }
 
   clean() {
     this.tokens = []
-    this.names = {}
+    this.entities = {}
   }
 
-  #setEntity(name, type, scope, lineNumber, startChar, subtype = 'value_mixed') {
+  #setEntity(word, type, scope, lineNumber, subtype = 'value_mixed') {
+    const name = word.text
+    const startChar = word.pos
     if (name === '_') return
 
-    if (this.names[name] !== undefined && !this.names[name].outOfScope) {
-      if (subtype != this.names[name].subtype || type != this.names[name].type) {
-        this.names[name].changes.push({
+    if (this.entities[name] !== undefined && !this.entities[name].outOfScope) {
+      if (subtype != this.entities[name].subtype || type != this.entities[name].type) {
+        this.entities[name].changes.push({
           line: lineNumber,
           char: startChar,
           scope: scope,
-          oldType: this.names[name].type,
+          oldType: this.entities[name].type,
           newType: type,
-          oldSubtype: this.names[name].subtype,
+          oldSubtype: this.entities[name].subtype,
           newSubtype: subtype,
         })
 
-        this.names[name].subtype = 'value_mixed'
+        this.entities[name].type = type // Segur?¿
+        this.entities[name].subtype = subtype //'value_mixed'
       }
     } else {
-      this.names[name] = {
+      this.entities[name] = {
+        name: name,
         defLine: lineNumber,
         defChar: startChar,
         scope: scope,
@@ -48,11 +53,26 @@ class EntityDefinitions {
         changes: [],
       }
     }
+
+    this.#tagIt(word, this.entities[name], lineNumber, type, ['declaration'])
   }
 
-  #tagIt(word, objname, line, type, modifiers = []) {
+  #tagIt(word, entity, line, type, modifiers = []) {
+    // Si és la definició, haurem d'esborrar l'ús
+    if (modifiers.includes('declaration')) {
+      this.tokens = this.tokens.filter(
+        token =>
+          !(
+            token.line === line &&
+            token.startChar === word.pos &&
+            token.entity.name === entity.name &&
+            token.modifiers.includes('use')
+          ),
+      )
+    }
+
     this.tokens.push({
-      entity: objname,
+      entity: clone(entity),
       line: line,
       startChar: word.pos,
       length: word.text.length,
@@ -63,17 +83,30 @@ class EntityDefinitions {
 
   analizeLine(words, lineNumber, scope = 0) {
     // Posa a lloc les variables que s'han de setejar a la següent posició i esborra aquelles fora de l'abast
-    for (const variableName in this.names) {
-      if (this.names[variableName].scope === undefined) {
-        this.names[variableName].scope = scope
+    for (const variableName in this.entities) {
+      if (this.entities[variableName].scope === undefined) {
+        this.entities[variableName].scope = scope
         continue
       }
 
-      if (this._hasScopes && scope < this.names[variableName].scope) {
+      if (this._hasScopes && scope < this.entities[variableName].scope) {
         // TODO: NO s'ha de borrar el nom de la variable si el scope és més petit que el de la variable (... o sí?)
         // De fet, a l'scope de funcions s'ha de borrar SEGUR
         // A la resta no és bona praxis, però no és incorrecte
-        this.names[variableName].outOfScope = true
+        this.entities[variableName].outOfScope = true
+      }
+    }
+
+    // Busca referències a variables
+    for (const variableName in this.entities) {
+      for (let j = 0; j < words.length; j++) {
+        if (words[j].text !== variableName) continue
+
+        //if (enUnaLlista(words, j)) continue
+
+        if (!this.entities[variableName].outOfScope) {
+          this.#tagIt(words[j], this.entities[variableName], lineNumber, this.entities[variableName].type, ['use'])
+        }
       }
     }
 
@@ -84,12 +117,8 @@ class EntityDefinitions {
         i + 1 < words.length &&
         (words[i + 1].command === 'variable_define_is' || words[i + 1].command === 'variable_define_equal')
       ) {
-        const variableName = words[i].text
-        const startChar = words[i].pos
-        const subtype = getDefinitionType(words.slice(i + 2), this.names, this._hasBooleans)
-
-        this.#setEntity(variableName, 'variable', scope, lineNumber, startChar, subtype)
-        this.#tagIt(words[i], this.names[variableName], lineNumber, 'variable', ['declaration'])
+        const subtype = getDefinitionType(words.slice(i + 2), this.entities, this._hasBooleans)
+        this.#setEntity(words[i], 'variable', scope, lineNumber, subtype)
         i += 2
       } else {
         i++
@@ -101,10 +130,7 @@ class EntityDefinitions {
     if (this._define_var_by_for)
       while (i + 2 < words.length) {
         if (words[i].command === 'for' && words[i + 2].command === 'in') {
-          const variableName = words[i + 1].text
-          const startChar = words[i + 1].pos
-          this.#setEntity(variableName, 'variable', undefined, lineNumber, startChar) // Scope undefined i serà posat a la següent línia
-          this.#tagIt(words[i + 1], this.names[variableName], lineNumber, 'variable', ['declaration'])
+          this.#setEntity(words[i + 1], 'variable', undefined, lineNumber) // Scope undefined i serà posat a la següent línia
           i += 3
         } else {
           i++
@@ -116,10 +142,7 @@ class EntityDefinitions {
     if (this._define_functions)
       while (i + 1 < words.length) {
         if (words[i].command === 'define') {
-          const functionName = words[i + 1].text
-          const startChar = words[i + 1].pos
-          this.#setEntity(functionName, 'function', scope, lineNumber, startChar)
-          this.#tagIt(words[i + 1], this.names[functionName], lineNumber, 'function', ['declaration'])
+          this.#setEntity(words[i + 1], 'function', scope, lineNumber)
           i += 2
         } else {
           i++
@@ -152,7 +175,7 @@ class EntityDefinitions {
         }
 
         // Find previous function declaration on names
-        this.names[functionName].params = params
+        this.entities[functionName].params = params
       }
     }
 
@@ -163,11 +186,11 @@ class EntityDefinitions {
       while ((match3 = returnRegex.exec(text)) !== null) {
         const identation = match3[1].length
         // Find previous function declaration on names
-        const variableNames = Object.keys(this.names)
+        const variableNames = Object.keys(this.entities)
         for (let i = variableNames.length - 1; i >= 0; i--) {
           const variableName = variableNames[i]
-          if (this.names[variableName].type === 'function' && this.names[variableName].defLine < lineNumber) {
-            this.names[variableName].return = true
+          if (this.entities[variableName].type === 'function' && this.entities[variableName].defLine < lineNumber) {
+            this.entities[variableName].return = true
             break
           }
         }
@@ -205,35 +228,17 @@ class EntityDefinitions {
     }
 
     */
-    // Busca referències a variables
-    for (const variableName in this.names) {
-      for (let j = 0; j < words.length; j++) {
-        if (words[j].text !== variableName) continue
-
-        const startChar = words[j].pos
-
-        // Evita que es marqui com a referència a la mateixa línia de la definició
-        if (this.names[variableName].defLine === lineNumber && this.names[variableName].defChar === startChar) continue
-
-        if (enUnaLlista(words, j)) continue
-
-        if (!this.names[variableName].outOfScope) {
-          this.#tagIt(words[j], this.names[variableName], lineNumber, this.names[variableName].type, ['use'])
-        }
-      }
-    }
   }
 
   finalCheck() {
     // Comprova que totes les definicions tenen ús
     const unUsed = []
 
-    for (const name in this.names) {
-      const entity = this.names[name]
-      entity.name = name
+    for (const name in this.entities) {
+      const entity = this.entities[name]
 
       // Busca si hi ha algun token d'ús per aquesta entitat
-      const hasUsage = this.tokens.some(token => token.entity === entity && token.modifiers.includes('use'))
+      const hasUsage = this.tokens.some(token => token.entity.name === entity.name && token.modifiers.includes('use'))
 
       if (!hasUsage) {
         unUsed.push(entity)
@@ -241,19 +246,6 @@ class EntityDefinitions {
     }
 
     return { unUsed: unUsed }
-  }
-
-  getEntities() {
-    return this.names
-  }
-
-  subtype(varname) {
-    if (!this.names[varname]) return undefined
-    return this.names[varname].subtype
-  }
-
-  get(name) {
-    return this.names[name]
   }
 
   getEntity(line, char) {

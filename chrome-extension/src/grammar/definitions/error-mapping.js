@@ -28,7 +28,7 @@ const errorMapping = [
   {
     codeerror: 'hy-level-unavailable-yet',
     on: ['random'],
-    to: 'hy-random-usage',
+    to: 'hy-atrandom-usage',
   },
   {
     codeerror: 'hy-expecting-close',
@@ -45,6 +45,11 @@ const errorMapping = [
     codeerror: 'hy-expecting-close',
     on: ['if', 'else', 'elif', 'while', 'for'],
     to: 'hy-missing-colon',
+  },
+  {
+    codeerror: 'hy-refused-command-for-print',
+    on: ['random'],
+    to: 'hy-random-braced-usage',
   },
   {
     codeerror: 'hy-refused-command-for-print',

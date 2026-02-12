@@ -5,6 +5,8 @@
   + tags: Array amb els tags on es vol aplicar l'error (default = NO CHECK)
   + levelStart: Nivell on comença la comanda [inclusiu] (default =1)
   + levelEnd: Nivell on acaba la comanda [inclusiu] (default =17)
+  + match: RegExp que ha de complir la paraula on es vol aplicar l'error (default = NO CHECK)
+  + rawLineMatch: RegExp que ha de complir la línia sencera on es vol aplicar l'error (default = NO CHECK)
   + hasBefore: RegExp que ha de tenir la paraula posterior al tag/commanda on es vol aplicar l'error (default = NO CHECK)
   + hasAfter: RegExp que ha de tenir la paraula anterior al tag/commanda es vol aplicar l'error (default = NO CHECK)
   + notlist: 'before' o 'after' per indicar que la paraula anterior o posterior no pot ser una llista (default = NO CHECK)
@@ -43,7 +45,7 @@ const specificHedyErrors = [
     levelStart: def.CMD_EQUAL.start,
     highlight: 'word',
     hasAfter: /^(?!pressed)/g,
-    codeerror: 'hy-recomended-equal',
+    codeerror: 'hy-recommended-equal',
   },
   {
     commands: ['from', 'to_list'],
@@ -102,19 +104,19 @@ const specificHedyErrors = [
     commands: ['compare_equal', 'compare_is'],
     levelStart: def.CMD_EQUALIGUAL.start,
     highlight: 'word',
-    codeerror: 'hy-recomended-equalequal',
+    codeerror: 'hy-recommended-equalequal',
   },
   {
     commands: ['ask', 'ask1'],
     levelStart: def.CMD_INPUT.start,
     highlight: 'word',
-    codeerror: 'hy-recomended-input',
+    codeerror: 'hy-recommended-input',
   },
   {
     commands: ['define'],
     levelStart: def.CMD_INPUT.start,
     highlight: 'word',
-    codeerror: 'hy-recomended-def',
+    codeerror: 'hy-recommended-def',
   },
   {
     commands: ['sum', 'rest', 'multiplication', 'division'],
@@ -292,6 +294,13 @@ const specificHedyErrors = [
     match: /^(['"])(?!.*\1).*/gu,
     codeerror: 'hy-string-must-end-with-quotes',
     levelStart: def.COMETES_TEXTOS.start,
+    highlight: 'word',
+  },
+  {
+    commands: ['variable_define_is'],
+    levelStart: def.BRACED_LIST.start,
+    rawLineMatch: /is\[/,
+    codeerror: 'hy-space-missing-is-and-bracket',
     highlight: 'word',
   },
 ]

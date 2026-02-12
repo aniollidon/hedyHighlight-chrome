@@ -133,7 +133,7 @@ class CheckHedy {
     let errors = this._searchMorphosyntacticErrors(sintagma, lineNumber)
     if (errors.length > 0) errorsFound.push(...errors)
 
-    errors = this._searchSpecificErrors(sintagma, lineNumber)
+    errors = this._searchSpecificErrors(sintagma, lineNumber, rawLine)
     if (errors.length > 0) errorsFound.push(...errors)
 
     errors = this._searchNotUsed(sintagma, lineNumber)
@@ -289,14 +289,14 @@ class CheckHedy {
     return errorsFound
   }
 
-  _searchSpecificErrors(sintagma, lineNumber) {
+  _searchSpecificErrors(sintagma, lineNumber, rawLine) {
     const errorsFound = []
 
     for (let k = 0; k < sintagma.size(); k++) {
       const word = sintagma.get(k)
 
       if (word.subphrase) {
-        errorsFound.push(...this._searchSpecificErrors(word.subphrase, lineNumber))
+        errorsFound.push(...this._searchSpecificErrors(word.subphrase, lineNumber, rawLine))
       }
 
       for (let j = 0; j < specificHedyErrors.length; j++) {
@@ -327,6 +327,10 @@ class CheckHedy {
 
         if (error.match) {
           match = error.match.exec(word.text)
+          if (!match) continue
+        }
+        if (error.rawLineMatch) {
+          match = error.rawLineMatch.exec(rawLine)
           if (!match) continue
         }
         if (error.hasAfter) {

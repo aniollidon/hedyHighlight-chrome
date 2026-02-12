@@ -39,7 +39,7 @@ const errors = {
   'hy-type-context': {
     message: "El text '[COMMAND]' que és [TYPE] no es pot fer servir d'aquesta manera.",
   },
-  'hy-recomended-equal': {
+  'hy-recommended-equal': {
     message: "És més recomanable fer servir '=' enlloc de 'is'.",
   },
   'hy-lines-must-start-with': {
@@ -48,7 +48,7 @@ const errors = {
   'hy-text-must-be-quoted': {
     message: "Aquest text hauria d'anar entre cometes. Potser és una variable mal definida?",
   },
-  'hy-recomended-equalequal': {
+  'hy-recommended-equalequal': {
     message: "En aquest nivell ja es pot fer servir '==' enlloc de '[COMMAND]'.",
   },
   'hy-entity-changes-content-type': {
@@ -88,6 +88,12 @@ const errors = {
   },
   'hy-command-missing-argument-comma': {
     message: "Després d'una coma hi ha d'haver un element.",
+  },
+  'hy-separator-required': {
+    message: "Els elements han d'anar separats per comes. Posa una coma abans de '[NAME]'.",
+  },
+  'hy-separator-recommended': {
+    message: "Es recomana posar una coma abans de '[NAME]'.",
   },
   'hy-level-unavailable-yet': {
     message: "La comanda '[COMMAND]' encara no es pot fer servir en aquest nivell.",
@@ -268,8 +274,11 @@ const errors = {
     message:
       'De moment no pots guardar directament dins una posició de la llista una operació, és una bona idea, però encara no es pot. Guarda el resultat en una variable i guarda-la posteriorment.',
   },
-  'hy-random-usage': {
+  'hy-atrandom-usage': {
     message: "La comanda 'random' espera la comanda 'at' abans.",
+  },
+  'hy-random-braced-usage': {
+    message: "La comanda 'random' ha d'estar dins uns clàudators. Per exemple: 'llista[random]'.",
   },
   'hy-comma-list-needs-brackets': {
     message:
@@ -341,6 +350,9 @@ const errors = {
   'hy-command-parenthesis-missing': {
     message: "La comanda '[COMMAND]' necessita parèntesis '()' per als seus arguments.",
   },
+  'hy-command-parenthesis-recommended': {
+    message: "Es recomana posar parèntesis '()' als arguments de la comanda '[COMMAND]'.",
+  },
   'hy-execting-left-right': {
     message: "La comanda '[COMMAND]' només accepta 'left' o 'right' després.",
   },
@@ -357,14 +369,23 @@ const errors = {
   'hy-unnecessary-colon': {
     message: "En aquest nivell encara no calen els dos punts. Elimina'ls.",
   },
-  'hy-recomended-input': {
+  'hy-recommended-input': {
     message: "Es recomana fer servir 'input' enlloc de 'ask'.",
   },
-  'hy-recomended-def': {
+  'hy-recommended-def': {
     message: "Es recomana fer servir 'def' enlloc de 'define'.",
   },
-  'hy-recomended-english-color-names': {
+  'hy-recommended-english-color-names': {
     message: 'Es recomana utilitzar els noms de colors en anglès.',
+  },
+  'hy-bracketed-lists-required': {
+    message: 'En aquest nivell les llistes han de estar rodejades de claudàtors.',
+  },
+  'hy-execting-color-quoted': {
+    message: "La comanda '[COMMAND]' espera un color entre cometes. S'ha trobat '[NAME]' que és [TYPE].",
+  },
+  'hy-space-missing-is-and-bracket': {
+    message: "Posa un espai després de 'is' i abans del claudàtor. ",
   },
 }
 
@@ -382,8 +403,16 @@ export function type2text(type) {
     tipus = 'un text sense cometes'
   } else if (type.startsWith('constant_string_quoted')) {
     tipus = 'un text'
+  } else if (type.startsWith('constant_color_language_quoted')) {
+    tipus = 'un color entrecomillat escrit en català'
+  } else if (type.startsWith('constant_color_language')) {
+    tipus = 'un color escrit en català'
+  } else if (type.startsWith('constant_color_quoted')) {
+    tipus = 'un color entre cometes'
   } else if (type.startsWith('constant_color')) {
-    tipus = 'un color'
+    tipus = 'un color sense cometes'
+  } else if (type.startsWith('constant_note_quoted')) {
+    tipus = 'una nota entre cometes'
   } else if (type.startsWith('constant_note')) {
     tipus = 'una nota'
   } else if (type.startsWith('constant_boolean')) {

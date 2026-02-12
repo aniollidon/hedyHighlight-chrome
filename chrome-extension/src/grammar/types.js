@@ -1,4 +1,5 @@
 import lang from '../lang/lang.js'
+import { cleanCometes } from '../utils.js'
 
 export function detectTypeConstant(text, hasNumbers = true, hasBooleans = false, hasCometes = true) {
   const word = text.trim()
@@ -11,18 +12,21 @@ export function detectTypeConstant(text, hasNumbers = true, hasBooleans = false,
     else return 'number_integer'
   }
 
+  const quoted =
+    hasCometes && ((word.startsWith('"') && word.endsWith('"')) || (word.startsWith("'") && word.endsWith("'")))
+
   // Pot ser una nota musical
-  if (word.match(/^\b(?:C[0-9]|D[0-9]|E[0-9]|F[0-9]|G[0-9]|A[0-9]|B[0-9]|[A-G])\b$/)) return 'note'
+  if (cleanCometes(word).match(/^\b(?:C[0-9]|D[0-9]|E[0-9]|F[0-9]|G[0-9]|A[0-9]|B[0-9]|[A-G])\b$/))
+    return quoted ? 'note_quoted' : 'note'
 
   // Pot ser un color
-  if (word.match(/\b(blue|green|red|black|brown|gray|orange|pink|purple|white|yellow)\b/)) return 'color'
+  if (word.match(/\b(blue|green|red|black|brown|gray|orange|pink|purple|white|yellow)\b/))
+    return quoted ? 'color_quoted' : 'color'
 
   // Pot ser un color segons l'idioma
-  if (lang.isColor(word)) return 'color_language'
+  if (lang.isColor(cleanCometes(word))) return quoted ? 'color_language_quoted' : 'color_language'
 
-  // Si comença i acaba per cometes és un string
-  if (hasCometes && ((word.startsWith('"') && word.endsWith('"')) || (word.startsWith("'") && word.endsWith("'"))))
-    return 'string_quoted'
+  if (quoted) return 'string_quoted'
   else if (word === '_') return 'blank'
   else return 'string_unquoted'
 }
@@ -111,11 +115,11 @@ export function enUnaLlista(words, id_word) {
   // abans o després hi ha ',' sense comandes
 
   for (let i = id_word - 1; i >= 0; i--) {
-    if ('comma' === words[i].command) return true
+    if ('comma' === words[i].command || 'bracket_open_definition' === words[i].command) return true
     if (words[i].command) break
   }
   for (let i = id_word + 1; i < words.length; i++) {
-    if ('comma' === words[i].command) return true
+    if ('comma' === words[i].command || 'bracket_close_definition' === words[i].command) return true
     if (words[i].command) break
   }
 

@@ -104,19 +104,25 @@ Es poden imprimir llistes
 - TODO: Hedy falla a imprimir decimals directament (fins n13) ✔️
 - Els booleans no es poden imprimir (fins n15) ✔️
 - TODO: WITH no existeix () enlloc
-- TODO: detectar variables que no es fan servir
+- TODO: detectar variables que no es fan servir ✔️
 - Sense sagnat recomana if/else amb enter. ✔️
 - Sense sagnat no hi pot haver sagnat ✔️
-- No és error definir un apostrof en un unquoted string `premis is 1 d'això, dallo`
+- No és error definir un apostrof en un unquoted string `premis is 1 d'això, dallo` ✔️
 - Multiples strings a les llistes `premis is 1 d'això, dallo`
-- concatenar sumes/restes/mutiplicacions
+- concatenar sumes/restes/mutiplicacions✔️ ✔️
 - les variables que contenen booleans no es poden imprimr ✔️
+- abans del 6, notes unquoted sempre
 
 ## TODO IMPORTANT. A PARTIR DEL 13... falta bastant
 
 - Acceptar if var is paraula segona (strings conncatenats)
-- Acceptar amb warnings print( "bla" "bla" ) # SENSE COMES!
-- Acceptar amb warnings print "bla", "bla" # SENSE ()!
-- Error o warning a l'espai entre `a is[1,2,3]`
-- Aquest codi? `a is [1,2,3] ## a is a[2]`
-- Comandes que funcionen però estàn deprecades
+- què passa amb nom = 1-2 777777
+- Acceptar amb warnings print( "bla" "bla" ) # SENSE COMES! ✔️
+- Acceptar amb warnings print "bla", "bla" # SENSE ()! ✔️
+- Error o warning a l'espai entre `a is[1,2,3]`✔️
+- Aquest codi? `a is [1,2,3] ## a is a[2]`✔️
+- Comandes que funcionen però estàn deprecades ✔️
+- Fins nivell 13, si una variable està en una definició de llista es detecta com a string
+- A nivell 13 les vars en les llistes estan permeses
+- prohibir les llsites sense [] (a = 1, 2 ,3) ✔️
+- Colors amb cometes nivell 13 ✔️

@@ -35,6 +35,7 @@ class OnLevel {
 
 export const COMETES_TEXTOS = new OnLevel(4)
 export const COMETES_ARREU = new OnLevel(12)
+export const COLORS_QUOTED = COMETES_ARREU
 export const COLON = new OnLevel(13)
 export const PARENTHESES = new OnLevel(13)
 

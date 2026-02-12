@@ -81,11 +81,15 @@ export class HedyCommandAnalyzer {
         }
 
         if (command.parenthesis && (words.length <= k + 1 || words[k + 1].text !== '(')) {
-          words[k].couldBe = {
-            command: command.name,
-            errorCode: 'hy-command-parenthesis-missing',
+          const pConfig = command.parenthesisConfig || 'required'
+          if (pConfig === 'required') {
+            words[k].couldBe = {
+              command: command.name,
+              errorCode: 'hy-command-parenthesis-missing',
+            }
+            continue
           }
-          continue
+          // optional/recommended: encara es taga com a comanda, es validarà a checkCommand
         }
 
         if (command.hasBefore) {
@@ -122,26 +126,85 @@ export class HedyCommandAnalyzer {
     return words
   }
 
-  checkCommandArguments(
-    sintagma,
-    commandWord,
-    commandDef,
-    commandPosSig,
-    startCh,
-    endCh,
-    lineNumber,
-    byconcat = false,
-  ) {
-    // DEBUG
+  checkCommandArguments(sintagma, commandWord, commandDef, commandPosSig, startCh, endCh, lineNumber) {
     let errorsFound = []
-    let endArgsPos = endCh
     let startArgsPos = startCh
 
-    // S'han de comprovar els arguments després de la comanda
-    if (commandDef.argumentsAfter !== undefined || commandDef.minArgumentsAfter !== undefined) {
-      let endArgsMin = startCh
-      let endArgsMax = startCh
+    // === STEP 1: Determina el final efectiu dels arguments considerant concatOn ===
+    // Si una comanda de concatenació (concatOn) apareix, els arguments d'aquesta comanda acaben allà.
+    // Exemple: 1 + 2 + 3 → el primer '+' té arguments fins al segon '+'
+    let effectiveEndCh = endCh
+    if (commandDef.concatOn) {
+      for (let j = startCh; j < endCh; j++) {
+        const word = sintagma.get(j)
+        if (word.command && commandDef.concatOn.includes(word.command)) {
+          effectiveEndCh = j
+          break
+        }
+      }
+    }
 
+    // === STEP 2: Classifica elements en arguments i separadors ===
+    // Dins la zona d'arguments [startCh, effectiveEndCh), separa els separadors (comes, etc.)
+    // dels arguments reals. Això permet comptar arguments sense comptar separadors.
+    const elements = [] // { pos: number, isSeparator: boolean }
+    for (let j = startCh; j < effectiveEndCh; j++) {
+      const word = sintagma.get(j)
+      const isSep = !!(commandDef.separator && word.command && word.command === commandDef.separator)
+      elements.push({ pos: j, isSeparator: isSep })
+    }
+
+    const argPositions = elements.filter(e => !e.isSeparator).map(e => e.pos)
+    const sepPositions = elements.filter(e => e.isSeparator).map(e => e.pos)
+    const argCount = argPositions.length
+
+    // === STEP 3: Valida l'estructura dels separadors ===
+    // Comprova el patró: ARG [SEP ARG [SEP ARG ...]]
+    // No pot haver-hi separador al final, ni dos separadors seguits.
+    // Si és required/recommended, dóna error/warning si falta separador entre arguments.
+    if (commandDef.separator && elements.length > 0) {
+      const sepConfig = commandDef.separatorConfig || 'required'
+
+      // No hi pot haver un separador al final
+      if (elements[elements.length - 1].isSeparator) {
+        const lastSepPos = elements[elements.length - 1].pos
+        errorsFound.push(
+          new HHError(
+            sintagma.get(lastSepPos).text,
+            'hy-not-expecting-coma-final',
+            sintagma.start(lastSepPos),
+            sintagma.end(lastSepPos),
+            lineNumber,
+          ),
+        )
+      }
+
+      // Si és required o recommended, comprova que hi ha separador entre arguments adjacents
+      if (sepConfig === 'required' || sepConfig === 'recommended') {
+        for (let i = 1; i < elements.length; i++) {
+          if (!elements[i].isSeparator && !elements[i - 1].isSeparator) {
+            const errorCode = sepConfig === 'required' ? 'hy-separator-required' : 'hy-separator-recommended'
+            errorsFound.push(
+              new HHError(
+                sintagma.get(elements[i].pos).text,
+                errorCode,
+                sintagma.end(elements[i].pos - 1),
+                sintagma.start(elements[i].pos),
+                lineNumber,
+              ),
+            )
+          }
+        }
+      }
+
+      // Marca separadors com a utilitzats
+      for (const sepPos of sepPositions) {
+        sintagma.markUsed(sepPos)
+      }
+    }
+
+    // === STEP 4: Valida el nombre d'arguments (exclou separadors del recompte) ===
+    if (commandDef.argumentsAfter !== undefined || commandDef.minArgumentsAfter !== undefined) {
       let argumentsAfter =
         commandDef.argumentsAfter === undefined
           ? [0]
@@ -151,19 +214,14 @@ export class HedyCommandAnalyzer {
 
       let argsMin = Math.min(...argumentsAfter)
       let argsMax = Math.max(...argumentsAfter)
-      endArgsMin = startCh + argsMin
-      endArgsMax = startCh + argsMax
 
       if (commandDef.minArgumentsAfter !== undefined) {
-        endArgsMin = startCh + commandDef.minArgumentsAfter
-        endArgsMax = sintagma.size() // Trick to avoid for loop unexpected-argument
         argsMin = commandDef.minArgumentsAfter
+        argsMax = Infinity
       }
 
-      endArgsPos = endArgsMax
-
-      if (!byconcat && endCh < endArgsMin) {
-        // Només comprovem quan no és una concatenació
+      // Massa pocs arguments
+      if (argCount < argsMin) {
         errorsFound.push(
           new HHErrorVal(
             commandWord.text,
@@ -171,31 +229,15 @@ export class HedyCommandAnalyzer {
             commandWord.pos,
             commandWord.pos + commandWord.text.length,
             lineNumber,
-            argsMin, // nombre mínim d'arguments
+            argsMin,
           ),
         )
       }
 
-      // Qualsevol element després dels necessaris són erronis
-      for (let j = endArgsPos; j < endCh; j++) {
-        // per debugar
-        const wordj = sintagma.get(j)
-        // Exceptuant l'element separator
-        if (commandDef.separator && sintagma.get(j).command && sintagma.get(j).command.includes(commandDef.separator)) {
-          errorsFound = errorsFound.concat(
-            this.checkCommandArguments(
-              sintagma,
-              commandWord,
-              commandDef,
-              commandPosSig,
-              j + 1,
-              endCh,
-              lineNumber,
-              true,
-            ),
-          )
-          break
-        } else
+      // Massa arguments (només quan hi ha un màxim definit)
+      if (argsMax !== Infinity && argCount > argsMax) {
+        for (let i = argsMax; i < argPositions.length; i++) {
+          const j = argPositions[i]
           errorsFound.push(
             new HHErrorVal(
               commandWord.text,
@@ -203,14 +245,15 @@ export class HedyCommandAnalyzer {
               sintagma.start(j),
               sintagma.end(j),
               lineNumber,
-              argsMax, // nombre màxim d'arguments
+              argsMax,
             ),
           )
+        }
       }
     }
 
-    // S'han de comprovar els arguments abans de la comanda, només si no és per separator
-    if (!byconcat && commandDef.argumentsBefore !== undefined) {
+    // === STEP 5: Comprova els arguments abans de la comanda ===
+    if (commandDef.argumentsBefore !== undefined) {
       if (commandPosSig < commandDef.argumentsBefore) {
         errorsFound.push(
           new HHErrorVal(
@@ -227,39 +270,60 @@ export class HedyCommandAnalyzer {
       }
     }
 
-    // Marca com a utilitzats els arguments vàlids
-    for (let j = startArgsPos; j < endArgsPos && j < endCh; j++) {
+    // === STEP 6: Marca arguments vàlids com a utilitzats ===
+    // Arguments abans de la comanda
+    for (let j = startArgsPos; j < commandPosSig; j++) {
       sintagma.markUsed(j)
     }
 
+    // Arguments després de la comanda (sense separadors, només els vàlids)
+    let maxToMark = argPositions.length
+    if (commandDef.argumentsAfter !== undefined && commandDef.minArgumentsAfter === undefined) {
+      const argsMax = Math.max(
+        ...(Array.isArray(commandDef.argumentsAfter) ? commandDef.argumentsAfter : [commandDef.argumentsAfter]),
+      )
+      maxToMark = Math.min(argPositions.length, argsMax)
+    }
+    for (let i = 0; i < maxToMark; i++) {
+      sintagma.markUsed(argPositions[i])
+    }
+
+    // === STEP 7: Valida el tipus dels arguments ===
     if (commandDef.arguments) {
       for (let sx = 0; sx < commandDef.arguments.length; sx++) {
         const rule = commandDef.arguments[sx]
         if (rule.levelStart && rule.levelStart > this.level) continue
         if (rule.levelEnd && rule.levelEnd < this.level) continue
 
-        for (let j = startArgsPos; j < endArgsPos && j < sintagma.size(); j++) {
-          if (j == commandPosSig) continue // No comprova la commanda en sí mateixa
-
+        // Arguments abans de la comanda
+        for (let j = startArgsPos; j < commandPosSig; j++) {
           const arg = sintagma.get(j)
           const sstart = sintagma.start(j)
           const send = sintagma.end(j)
 
-          if (
-            commandDef.concatOn &&
-            (j === 0 || !sintagma.get(j - 1).command) && // Can concat a command
-            sintagma.get(j).command &&
-            commandDef.concatOn.includes(sintagma.get(j).command)
-          )
-            break // Stop checking if it's a concatOn command
-
           if (rule.positionInSintagma !== undefined && rule.positionInSintagma !== commandPosSig) continue
-          if (rule.position !== undefined && rule.position !== j - startArgsPos + 1) continue
           if (rule.refused && !validType(arg.tag, rule.refused)) continue
           if (rule.allowed && validType(arg.tag, rule.allowed)) continue
 
           const type = arg.couldBe ? 'command_' + arg.couldBe.command : arg.tag
+          errorsFound.push(
+            new HHErrorArgument(arg.text, rule.codeerror, sstart, send, lineNumber, type, commandWord.command),
+          )
+        }
 
+        // Arguments després de la comanda (sense separadors)
+        for (let i = 0; i < argPositions.length; i++) {
+          const j = argPositions[i]
+          const arg = sintagma.get(j)
+          const sstart = sintagma.start(j)
+          const send = sintagma.end(j)
+
+          if (rule.positionInSintagma !== undefined && rule.positionInSintagma !== commandPosSig) continue
+          if (rule.position !== undefined && rule.position !== i + 1) continue
+          if (rule.refused && !validType(arg.tag, rule.refused)) continue
+          if (rule.allowed && validType(arg.tag, rule.allowed)) continue
+
+          const type = arg.couldBe ? 'command_' + arg.couldBe.command : arg.tag
           errorsFound.push(
             new HHErrorArgument(arg.text, rule.codeerror, sstart, send, lineNumber, type, commandWord.command),
           )
@@ -281,8 +345,15 @@ export class HedyCommandAnalyzer {
     let startPos = pos + 1 // Inici dels arguments
 
     // Es comprova si la comanda obre amb parenthesis
+    let hasParenthesis = false
     if (commandDef.parenthesis) {
-      if (sintagma.size() <= pos + 1 || sintagma.get(pos + 1).command !== 'parenthesis_open') {
+      const pConfig = commandDef.parenthesisConfig || 'required'
+      hasParenthesis = sintagma.size() > pos + 1 && sintagma.get(pos + 1).command === 'parenthesis_open'
+
+      if (hasParenthesis) {
+        sintagma.markUsed(pos + 1)
+        startPos = pos + 2 // Arguments start after the opening parenthesis
+      } else if (pConfig === 'required') {
         errorsFound.push(
           new HHError(
             commandWord.text,
@@ -293,30 +364,47 @@ export class HedyCommandAnalyzer {
           ),
         )
         return errorsFound
+      } else if (pConfig === 'recommended') {
+        errorsFound.push(
+          new HHError(
+            commandWord.text,
+            'hy-command-parenthesis-recommended',
+            commandWord.pos,
+            commandWord.pos + commandWord.text.length,
+            lineNumber,
+          ),
+        )
+        // Continua sense parèntesis, arguments comencen a pos + 1
       }
+      // optional: no error, arguments comencen a pos + 1
 
-      sintagma.markUsed(pos + 1)
-      startPos = pos + 2 // Arguments start after the opening parenthesis
+      // Si no s'ha trobat '(' però hi ha un ')' al final, consumir-lo
+      // per evitar errors espuris (hy-unnecessary-parentheses, hy-separator-recommended)
+      if (!hasParenthesis && sintagma.last().command === commandDef.closedBy) {
+        sintagma.markUsed(endPos - 1)
+        endPos = endPos - 1
+      }
     }
 
-    // Es comprova si la comanda tanca amb closedBy (si hi ha parentesis ja s'ha assignat amb 'parenthesis_close')
-    if (commandDef.closedBy) {
+    // Es comprova si la comanda tanca amb closedBy
+    // Si closedBy ve de parenthesis (auto-assignat), només comprova quan s'han trobat parèntesis
+    const shouldCheckClosedBy = commandDef.closedBy && (!commandDef.parenthesis || hasParenthesis)
+    if (shouldCheckClosedBy) {
       if (sintagma.last().command !== commandDef.closedBy) {
         errorsFound.push(
           new HHErrorType(
             commandWord.text,
             'hy-expecting-close',
-            sintagma.sintagmaEnd() - 1,
             sintagma.sintagmaEnd(),
+            sintagma.sintagmaEnd() + 1,
             lineNumber,
             'command_' + commandDef.closedBy,
           ),
         )
       } else {
         sintagma.markUsed(endPos - 1)
+        endPos = endPos - 1
       }
-
-      endPos = endPos - 1
     }
 
     const argErrors = this.checkCommandArguments(sintagma, commandWord, commandDef, pos, startPos, endPos, lineNumber)

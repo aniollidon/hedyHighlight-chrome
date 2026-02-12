@@ -17,6 +17,8 @@
   + usesParameters: Si la comanda fa servir paràmetres (default = false)
   + closedBy: Commanda de tancament de la comanda (default = NO CHECK)
   + unavailable: tag que s'assinga quan la comanda encara no està disponible (per defecte sino donarà error)
+  + parenthesis: Si la comanda té parèntesis que envolten els arguments (default = false)
+  + parenthesisConfig: Com actual els parèntesis required |  optional | recommended (default = required)
   + arguments: Array amb les restriccions de sintaxi dels elements de la comanda
     + codeerror: Codi de l'error (obligatori)
     + levelStart: Nivell on comença la restricció [inclusiu] (default =1)
@@ -113,22 +115,19 @@ const printableTemplate = {
 
 const commandDefinition = [
   {
-    // S'ha de definir abans de print sense parèntesis
-    name: 'print_parenthesis',
-    text: 'print',
-    levelStart: def.PARENTHESES.start,
-    levelEnd: def.PARENTHESES.end,
-    parenthesis: true, // ja busca els parèntesis inici i final
-    atBegining: true,
-    argumentsAfter: 1,
-    separator: 'comma',
-    separatorConfig: 'recommended',
-    ...printableTemplate,
-  },
-  {
     text: 'print',
     atBegining: true,
     minArgumentsAfter: 1,
+    syntax: [
+      {
+        levelStart: def.PARENTHESES.start,
+        levelEnd: def.PARENTHESES.end,
+        parenthesis: true,
+        parenthesisConfig: 'recommended',
+        separator: 'comma',
+        separatorConfig: 'recommended',
+      },
+    ],
     ...printableTemplate,
   },
   {
@@ -177,8 +176,14 @@ const commandDefinition = [
     argumentsAfter: 1,
     arguments: [
       {
+        levelEnd: def.COLORS_QUOTED.before(),
         allowed: ['$value', 'constant_color'],
         codeerror: 'hy-execting-color',
+      },
+      {
+        levelStart: def.COLORS_QUOTED.start,
+        allowed: ['$value', 'constant_color_quoted', 'constant_color_language_quoted'],
+        codeerror: 'hy-execting-color-quoted',
       },
     ],
   },
@@ -222,7 +227,6 @@ const commandDefinition = [
     levelStart: def.CMD_INPUT.start,
     levelEnd: def.CMD_INPUT.end,
     parenthesis: true, // ja busca els parèntesis inici i final
-    argumentsAfter: 1,
     separator: 'comma',
     separatorConfig: 'recommended',
     ...printableTemplate,
@@ -430,9 +434,6 @@ const commandDefinition = [
       },
       {
         levelStart: def.CMD_ATRANDOM.after(),
-        hasBefore: /\[ */gu,
-        hasAfter: / *\]/gu,
-        argumentsAfter: 1,
       },
     ],
   },
@@ -582,7 +583,9 @@ const commandDefinition = [
     hasBefore: /^for .* in$/g,
     separator: 'comma',
     separatorConfig: 'required',
-    argumentsAfter: 3,
+    parenthesis: true,
+    parenthesisConfig: 'required',
+    argumentsAfter: 2,
   },
   {
     text: 'define',
@@ -882,7 +885,6 @@ const commandDefinition = [
     text: '[',
     name: 'bracket_open_definition',
     levelStart: def.BRACED_LIST.start,
-    argumentsAfter: 1,
     separator: 'comma',
     separatorConfig: 'required',
     closedBy: 'bracket_close',

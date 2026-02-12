@@ -146,82 +146,66 @@ function detectBracedList(tokens) {
   return result
 }
 
-/*
-function detectParentheses(tokens) {
+/* llistes unbraced:
+- exemple: llista is|= bla, bla, bla blu
+- No hi pot haver [ni ] ni comandes entre els elements
+- Pot haver-hi constants consectuives 
+- Hi ha d'haver com a mínim una coma
+*/
+function detectUnbracedList(tokens) {
   let result = []
   let i = 0
 
   while (i < tokens.length) {
-    // Detect empty tuple
-    if (
-      i + 1 < tokens.length &&
-      tokens[i].command &&
-      tokens[i].command.startsWith('parenthesis_open') &&
-      tokens[i + 1].command === 'parenthesis_close'
-    ) {
-      result.push({
-        text: '()',
-        tag: 'tuple_empty',
-        pos: tokens[i].pos,
-        end: tokens[i + 1].pos + tokens[i + 1].text.length,
-        type: 'tuple_empty',
-      })
-      i = i + 2
-    }
-    // Detect tuple access
-    else if (
-      i + 1 < tokens.length &&
-      !tokens[i].command &&
-      tokens[i + 1].command &&
-      tokens[i + 1].command.startsWith('parenthesis_open')
-    ) {
-      let phrase = [tokens[i], tokens[i + 1]]
-      i = i + 2
-      while (i < tokens.length && tokens[i].command !== 'parenthesis_close') {
-        phrase.push(tokens[i])
-        i++
-      }
-      if (i < tokens.length && tokens[i].command === 'parenthesis_close') {
-        phrase.push(tokens[i])
-        i++
-      }
-      result.push({
-        text: phrase.map(token => token.text).join(' '),
-        tag: 'tuple_access',
-        pos: phrase[0].pos,
-        end: phrase[phrase.length - 1].pos + phrase[phrase.length - 1].text.length,
-        type: 'tuple_access',
-        subphrase: phrase,
-      })
-    }
-    // Detect tuple definition
-    else if (tokens[i].command && tokens[i].command.startsWith('parenthesis_open')) {
-      let phrase = [tokens[i]]
+    // Després de is|= definició, comprova si els valors formen una llista sense claudàtors
+    if (tokens[i].command === 'variable_define_is' || tokens[i].command === 'variable_define_equal') {
+      result.push(tokens[i])
       i++
-      while (i < tokens.length && tokens[i].command !== 'parenthesis_close') {
-        phrase.push(tokens[i])
-        i++
+
+      // Escaneja tots els tokens restants després de la definició
+      let phrase = []
+      let hasComma = false
+      let valid = true
+      let j = i
+
+      while (j < tokens.length) {
+        const t = tokens[j]
+        // Claudàtors o llistes braced invaliden el patró
+        if (t.tag === 'braced_list' || t.tag === 'list_access' || t.tag === 'list_empty') {
+          valid = false
+          break
+        }
+        // Comandes que no siguin comes no estan permeses
+        if (t.command && t.command !== 'comma') {
+          valid = false
+          break
+        }
+        if (t.command === 'comma') hasComma = true
+        phrase.push(t)
+        j++
       }
-      if (i < tokens.length && tokens[i].command === 'parenthesis_close') {
-        phrase.push(tokens[i])
-        i++
+
+      // Només agrupa com a llista unbraced si: hi ha coma, no hi ha claudàtors, no hi ha comandes
+      if (valid && hasComma && phrase.length > 0) {
+        result.push({
+          text: phrase.map(token => token.text).join(' '),
+          tag: 'unbraced_list',
+          pos: phrase[0].pos,
+          end: phrase[phrase.length - 1].pos + phrase[phrase.length - 1].text.length,
+          type: 'unbraced_list',
+          subphrase: phrase,
+        })
+        i = j
       }
-      result.push({
-        text: phrase.map(token => token.text).join(' '),
-        tag: 'tuple',
-        pos: phrase[0].pos,
-        end: phrase[phrase.length - 1].pos + phrase[phrase.length - 1].text.length,
-        type: 'tuple',
-        subphrase: phrase,
-      })
+      // Si no és vàlid, els tokens passaran individualment al següent cicle
     } else {
       result.push(tokens[i])
       i++
     }
   }
+
   return result
 }
-*/
 
 function detectUnquotedStrings(tokens) {
   let result = []
@@ -279,19 +263,25 @@ function detectLanguageFunctions(tokens, hasAtRandom = false, hasRange = false) 
       })
       i += 3
     }
-    // range _ to _ calls
-    else if (hasRange && tokens[i].command === 'range') {
+    // range (_ , _) calls
+    else if (tokens[i].command === 'range') {
       let phrase = [tokens[i]]
-      let move = 1
+      let move = 0
 
-      for (let j = i + 1; j < tokens.length && j < i + 4; j++) {
-        if (((j === i + 1 || j === i + 3) && !tokens[j].command) || (j === i + 2 && tokens[j].command === 'to_range')) {
+      for (let j = i + 1; j < tokens.length; j++) {
+        // si no és una comanda (exceptuant comes i parentesis), formaria part de la frase
+        if (!tokens[j].command || tokens[j].command === 'comma' || tokens[j].command.startsWith('parenthesis')) {
           phrase.push(tokens[j])
           move++
+          // Si és parentesis_close, no pot haver més elements després
+          if (tokens[j].command && tokens[j].command.startsWith('parenthesis_close')) {
+            break
+          }
         } else {
           break
         }
       }
+
       result.push({
         text: phrase.map(token => token.text).join(' '),
         tag: 'call_range',
@@ -300,7 +290,7 @@ function detectLanguageFunctions(tokens, hasAtRandom = false, hasRange = false) 
         type: 'function_usage',
         subphrase: phrase,
       })
-      i += move
+      i += move + 1
     } else {
       result.push(tokens[i])
       i++
@@ -582,6 +572,7 @@ function detectMorpho(words, hasAtRandom, hasFunctions, hasRange, rawLine) {
   words = detectNegatives(words)
   words = detectUnquotedStrings(words)
   words = detectBracedList(words)
+  words = detectUnbracedList(words)
   //words = detectParentheses(words)
   words = detectMath(words)
   words = detectLanguageFunctions(words, hasAtRandom, hasRange)

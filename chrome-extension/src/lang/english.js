@@ -39,7 +39,7 @@ const errors = {
   'hy-type-context': {
     message: "The text '[COMMAND]' which is [TYPE] cannot be used this way.",
   },
-  'hy-recomended-equal': {
+  'hy-recommended-equal': {
     message: "It is recommended to use '=' instead of 'is'.",
   },
   'hy-lines-must-start-with': {
@@ -48,7 +48,7 @@ const errors = {
   'hy-text-must-be-quoted': {
     message: 'This text should be in quotes. Maybe it is a misspelled variable?',
   },
-  'hy-recomended-equalequal': {
+  'hy-recommended-equalequal': {
     message: "At this level you can use '==' instead of '[COMMAND]'.",
   },
   'hy-entity-changes-content-type': {
@@ -88,6 +88,12 @@ const errors = {
   },
   'hy-command-missing-argument-comma': {
     message: 'After a comma there must be an element.',
+  },
+  'hy-separator-required': {
+    message: "A comma is expected before '[NAME]'.",
+  },
+  'hy-separator-recommended': {
+    message: "It's recommended to use a comma before '[NAME]'.",
   },
   'hy-level-unavailable-yet': {
     message: "'[COMMAND]' command cannot be used at this level yet.",
@@ -268,8 +274,11 @@ const errors = {
     message:
       "Currently you cannot directly store an operation in a position of the list, it's a good idea, but not yet possible. Save the result in a variable and store it later.",
   },
-  'hy-random-usage': {
+  'hy-atrandom-usage': {
     message: "The command 'random' expects the command 'at' before it.",
+  },
+  'hy-random-braced-usage': {
+    message: "The command 'random' expects the command to be inside brackets. For example: 'list[random]'.",
   },
   'hy-comma-list-needs-brackets': {
     message:
@@ -341,6 +350,9 @@ const errors = {
   'hy-command-parenthesis-missing': {
     message: "The command '[COMMAND]' needs parentheses '()' for its arguments.",
   },
+  'hy-command-parenthesis-recommended': {
+    message: "It's recommended to use parentheses '()' for the arguments of '[COMMAND]'.",
+  },
   'hy-execting-left-right': {
     message: "The command '[COMMAND]' only accepts 'left' or 'right' after it.",
   },
@@ -356,14 +368,23 @@ const errors = {
   'hy-unnecessary-colon': {
     message: 'Colons are not necessary at this level. Remove them.',
   },
-  'hy-recomended-input': {
+  'hy-recommended-input': {
     message: "It is recommended to use 'input' instead of 'ask'.",
   },
-  'hy-recomended-def': {
+  'hy-recommended-def': {
     message: "It is recommended to use 'def' instead of 'define'.",
   },
-  'hy-recomended-english-color-names': {
+  'hy-recommended-english-color-names': {
     message: 'It is recommended to use color names in English. THIS MESSAGE SHOULD NOT APPEAR IN ENGLISH.',
+  },
+  'hy-bracketed-lists-required': {
+    message: 'At this level, lists must be surrounded by brackets.',
+  },
+  'hy-execting-color-quoted': {
+    message: "'[COMMAND]' command expects a color in quotes. '[NAME]' which is [TYPE] was found.",
+  },
+  'hy-space-missing-is-and-bracket': {
+    message: "Put a space after 'is' and before the bracket.",
   },
 }
 
@@ -381,8 +402,12 @@ export function type2text(type) {
     tipus = 'An unquoted text'
   } else if (type.startsWith('constant_string_quoted')) {
     tipus = 'A text'
+  } else if (type.startsWith('constant_color_quoted')) {
+    tipus = 'A color in quotes'
   } else if (type.startsWith('constant_color')) {
     tipus = 'A color'
+  } else if (type.startsWith('constant_note_quoted')) {
+    tipus = 'A note in quotes'
   } else if (type.startsWith('constant_note')) {
     tipus = 'A note'
   } else if (type.startsWith('constant_boolean')) {

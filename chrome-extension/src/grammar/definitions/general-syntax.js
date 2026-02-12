@@ -88,7 +88,14 @@ const hedyGeneralSyntax = [
 
   {
     refused: ['constant_color_language'],
-    codeerror: 'hy-recomended-english-color-names',
+    codeerror: 'hy-recommended-english-color-names',
+  },
+
+  {
+    refused: ['unbraced_list'],
+    codeerror: 'hy-bracketed-lists-required',
+    levelStart: def.BRACED_LIST.start,
+    levelEnd: def.BRACED_LIST.end,
   },
 ]
 
